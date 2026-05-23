@@ -115,11 +115,37 @@
         <AreaLock v-if="!game.isWorkshopUnlocked" :required-level="8" />
       </div>
     </div>
+
+    <!-- 种子选择弹窗 -->
+    <Teleport to="body">
+      <div v-if="seedPicker.visible" class="seed-picker-overlay" @click.self="seedPicker.visible=false">
+        <div class="seed-picker">
+          <div class="sp-title">🌱 选择要种植的作物</div>
+          <div class="sp-list">
+            <div
+              v-for="c in availableSeeds"
+              :key="c.id"
+              class="sp-item"
+              :class="{ 'sp-locked': c.locked }"
+              @click="!c.locked && plantSeed(c.id)"
+            >
+              <span class="sp-emoji">{{ c.emoji }}</span>
+              <div class="sp-info">
+                <span class="sp-name">{{ c.name }}</span>
+                <span v-if="c.locked" class="sp-locked-tag">🔒 Lv.{{ c.unlockLevel }} 解锁</span>
+                <span v-else class="sp-price">💰{{ c.price }} · ⏱{{ c.timeStr }}</span>
+              </div>
+            </div>
+          </div>
+          <button class="sp-cancel" @click="seedPicker.visible=false">取消</button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject } from 'vue'
+import { ref, reactive, computed, inject } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { CROP_CONFIGS, ANIMAL_CONFIGS, FLOWER_CONFIGS } from '@/configs'
 import { FARM_PLOT_PRICES, RANCH_SLOT_PRICES, GARDEN_POT_PRICES } from '@/configs/economy'
@@ -180,6 +206,35 @@ function onWheel(e: WheelEvent) {
   clamp()
 }
 
+// ── Zone Zoom ──
+const ZONE_ZOOM = {
+  farm:     { x: 260, y: 260, w: 480, h: 480 },
+  ranch:    { x: 750, y: 260, w: 480, h: 480 },
+  garden:   { x: 260, y: 750, w: 480, h: 480 },
+  workshop: { x: 750, y: 750, w: 480, h: 480 },
+}
+function zoomToZone(key: string) {
+  const z = ZONE_ZOOM[key as keyof typeof ZONE_ZOOM]; if (!z) return
+  const v = vp()
+  const targetScale = Math.min(v.w / (z.w + 20), v.h / (z.h + 20))
+  const tx = -(z.x * targetScale - v.w / 2)
+  const ty = -(z.y * targetScale - v.h / 2)
+  const fromS = scale.value; const fromX = pan.value.x; const fromY = pan.value.y
+  cancelAnimationFrame(animFrame)
+  const start = performance.now(); const dur = 400
+  function step(now: number) {
+    const t = Math.min(1, (now - start) / dur); const e = 1 - Math.pow(1 - t, 3)
+    scale.value = fromS + (targetScale - fromS) * e
+    pan.value.x = fromX + (tx - fromX) * e
+    pan.value.y = fromY + (ty - fromY) * e
+    if (t < 1) animFrame = requestAnimationFrame(step)
+  }
+  animFrame = requestAnimationFrame(step)
+}
+
+function resetView() { scale.value = 1; pan.value = { x: 0, y: 0 } }
+defineExpose({ zoomToZone, resetView })
+
 // ================================================================
 //  FARM 6×6
 // ================================================================
@@ -209,6 +264,23 @@ const gardenCanExpand = computed(() => {
   return game.isGardenUnlocked && game.gardenPots.length < GARDEN_POT_PRICES.length
 })
 
+// ── Seed Picker ──
+const seedPicker = reactive({ visible: false, tileIdx: -1 })
+const availableSeeds = computed(() =>
+  Object.entries(CROP_CONFIGS).map(([id, c]) => ({
+    id: id as CropId,
+    name: c.name, emoji: c.emoji, price: c.seedPrice,
+    unlockLevel: c.unlockLevel, locked: game.level < c.unlockLevel,
+    timeStr: `${c.growTimeSeconds}s`,
+  }))
+)
+function plantSeed(cropId: CropId) {
+  if (seedPicker.tileIdx >= 0) {
+    if (game.plantCrop(seedPicker.tileIdx, cropId)) toast('已种植！🌱', 'success')
+  }
+  seedPicker.visible = false
+}
+
 // ================================================================
 //  EMOJI
 // ================================================================
@@ -234,7 +306,7 @@ function onTileClick(tile: TD) {
   if (tile.locked) { expandFarm(); return }
   if (tile.state==='MATURE') game.harvestPlot(tile.idx)
   else if (tile.state==='PLANTED'||tile.state==='GROWING') { if ((tile.waterCount??1)===0) game.waterPlot(tile.idx) }
-  else if (tile.state==='EMPTY') { const f=Object.values(CROP_CONFIGS).find(c=>c.unlockLevel<=game.level); if(f) game.plantCrop(tile.idx, f.id as CropId) }
+  else if (tile.state==='EMPTY') { seedPicker.tileIdx = tile.idx; seedPicker.visible = true }
 }
 function onSlotClick(s:any) {
   if (moved) return
@@ -321,18 +393,34 @@ function expandGarden() {
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
   display:grid; grid-template-columns:repeat(6,72px); grid-template-rows:repeat(6,72px); gap:5px; z-index:2;
 }
-.farm-tile{position:relative;cursor:pointer;transition:transform .1s}
+.farm-tile{position:relative;cursor:pointer;transition:transform .1s;display:flex;align-items:center;justify-content:center}
 .farm-tile:active{transform:scale(.93)}.farm-tile.locked{cursor:pointer}
 .ft-dirt{position:absolute;inset:0;background:linear-gradient(135deg,#b89860,#8b6a40);border-radius:5px;box-shadow:inset 0 1px 2px rgba(0,0,0,.2),0 1px 3px rgba(0,0,0,.15)}
 .thirsty .ft-dirt{background:linear-gradient(135deg,#c49060,#a07040)}
 .mature .ft-dirt{background:linear-gradient(135deg,#a08850,#786030)}
 .withered .ft-dirt{background:linear-gradient(135deg,#807060,#605040)}
 .locked .ft-dirt{background:#9a8a70}
-.ft-crop{position:absolute;top:-8px;left:50%;transform:translateX(-50%);z-index:2;display:flex;align-items:center;justify-content:center}
-.ftc-lock{font-size:15px;opacity:.45}.ftc-empty{font-size:11px;opacity:.2}
-.ftc-mature{font-size:24px;animation:bounce 1.2s infinite}.ftc-wither{font-size:16px;opacity:.5}
-.ftc-growing{font-size:16px;animation:cropSway 3s infinite}
-.ft-tag{position:absolute;top:-10px;right:-4px;font-size:10px;z-index:4}
+.ft-crop{position:relative;z-index:2;display:flex;align-items:center;justify-content:center}
+.ftc-lock{font-size:18px;opacity:.75}.ftc-empty{font-size:12px;opacity:.25}
+.ftc-mature{font-size:28px;animation:bounce 1.2s infinite}.ftc-wither{font-size:18px;opacity:.5}
+.ftc-growing{font-size:20px;animation:cropSway 3s infinite}
+.ft-tag{position:absolute;top:2px;right:2px;font-size:10px;z-index:4}
 @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 @keyframes cropSway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+
+// ── Seed Picker ──
+.seed-picker-overlay { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:400; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(3px); }
+.seed-picker { background:linear-gradient(180deg,#f5ead0,#e8d8b0); border:3px solid #a07840; border-radius:16px; padding:16px; min-width:240px; max-width:300px; box-shadow:0 8px 32px rgba(0,0,0,.35); }
+.sp-title { font-size:15px; font-weight:800; color:#4a3728; text-align:center; margin-bottom:12px; }
+.sp-list { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+.sp-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(255,255,255,.6); border:2px solid rgba(160,120,64,.3); border-radius:10px; cursor:pointer; transition:all .12s; }
+.sp-item:hover { background:#fff; border-color:#a07840; transform:scale(1.02); }
+.sp-item:active { transform:scale(.96); }
+.sp-emoji { font-size:28px; width:36px; text-align:center; }
+.sp-info { flex:1; display:flex; flex-direction:column; }
+.sp-name { font-size:13px; font-weight:700; color:#4a3728; }
+.sp-price { font-size:11px; color:#8a6a48; }
+.sp-locked { opacity:.35; cursor:not-allowed; pointer-events:none; filter:grayscale(1); }
+.sp-locked-tag { font-size:10px; color:#c0392b; }
+.sp-cancel { width:100%; padding:8px; background:rgba(0,0,0,.08); border:none; border-radius:8px; font-size:13px; font-weight:600; color:#6a5a48; cursor:pointer; }
 </style>

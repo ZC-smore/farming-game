@@ -3,6 +3,7 @@
     <GameHeader />
     <main class="game-main">
       <WorldMap ref="worldRef" />
+      <RegionNav @zoom="onZoom" @reset="onReset" />
     </main>
 
     <!-- 弹出面板 -->
@@ -42,6 +43,7 @@ import GameHeader from '@/components/common/GameHeader.vue'
 import GameToast from '@/components/common/GameToast.vue'
 import GameModal from '@/components/common/GameModal.vue'
 import WorldMap from '@/components/world/WorldMap.vue'
+import RegionNav from '@/components/world/RegionNav.vue'
 import ShopView from '@/components/shop/ShopView.vue'
 import InventoryView from '@/components/inventory/InventoryView.vue'
 
@@ -60,6 +62,9 @@ provide('showToast', (msg: string, type: 'success' | 'error' | 'info' = 'success
 // 弹出
 const showShop = ref(false)
 const showInventory = ref(false)
+
+function onZoom(zone: string) { worldRef.value?.zoomToZone(zone) }
+function onReset() { worldRef.value?.resetView() }
 
 // Tutorial
 const showTutorial = ref(false)

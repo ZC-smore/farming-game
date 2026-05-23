@@ -1,247 +1,187 @@
 <template>
   <Teleport to="body">
-    <Transition name="fade">
+    <Transition name="modal-fade">
       <div v-if="visible" class="inv-overlay" @click.self="$emit('close')">
-        <Transition name="slide-up">
-          <div v-if="visible" class="inv-panel">
-            <div class="panel-header">
-              <h3>📦 仓库</h3>
-              <div class="header-capacity">
-                <span>{{ game.inventory.usedCapacity }}/{{ game.inventory.capacity }}</span>
-                <div class="cap-bar">
-                  <div class="cap-fill" :style="{ width: capacityPercent + '%' }"></div>
-                </div>
-              </div>
-              <button class="close-btn" @click="$emit('close')">✕</button>
-            </div>
+        <div class="inv-panel">
+          <div class="inv-header">
+            <h3>📦 仓库</h3>
+            <span class="inv-count">{{ totalCount }}/{{ game.inventory.capacity }}</span>
+            <button class="inv-close" @click="$emit('close')">✕</button>
+          </div>
 
-            <div class="panel-body">
-              <div v-for="group in itemGroups" :key="group.type" class="inv-group">
-                <div class="group-title">{{ group.label }}</div>
-                <div v-if="group.items.length === 0" class="empty-hint">暂无</div>
-                <div v-else class="inv-grid">
-                  <div v-for="item in group.items" :key="item.id" class="inv-item">
-                    <span class="inv-emoji">{{ item.emoji }}</span>
-                    <span class="inv-name">{{ item.name }}</span>
-                    <span class="inv-count">×{{ item.count }}</span>
-                    <div class="inv-actions">
-                      <button class="sell-btn" @click="game.sellItem(item.id)">💰</button>
-                      <button class="sell-all-btn" @click="game.sellAllOfType(item.id)">全卖</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <!-- 筛选 -->
+          <div class="inv-tabs">
+            <button v-for="t in filterTabs" :key="t.key" class="inv-tab" :class="{ active: filter === t.key }" @click="filter = t.key">{{ t.label }}</button>
+          </div>
 
-              <!-- 材料 -->
-              <div class="inv-group">
-                <div class="group-title">🧪 材料</div>
-                <div class="inv-grid">
-                  <div class="inv-item material">
-                    <span class="inv-emoji">🌾</span>
-                    <span class="inv-name">饲料</span>
-                    <span class="inv-count">×{{ game.feedStock }}</span>
-                  </div>
-                  <div class="inv-item material">
-                    <span class="inv-emoji">🌱</span>
-                    <span class="inv-name">肥料</span>
-                    <span class="inv-count">×{{ game.fertilizerStock }}</span>
-                  </div>
-                </div>
-              </div>
+          <!-- 物品网格 -->
+          <div class="inv-body">
+            <div v-if="filteredItems.length === 0" class="inv-empty">暂无物品</div>
+            <div v-else class="inv-grid">
+              <button
+                v-for="item in filteredItems"
+                :key="item.id"
+                class="inv-item"
+                :class="{ selected: selected.has(item.id) }"
+                @click="toggle(item.id)"
+              >
+                <div class="inv-check" :class="{ on: selected.has(item.id) }">{{ selected.has(item.id) ? '✓' : '' }}</div>
+                <span class="inv-emoji">{{ item.emoji }}</span>
+                <span class="inv-name">{{ item.name }}</span>
+                <span class="inv-qty">×{{ item.count }}</span>
+              </button>
             </div>
           </div>
-        </Transition>
+
+          <!-- 底部操作 -->
+          <div class="inv-footer" v-if="filteredItems.length > 0">
+            <button
+              class="inv-select-all"
+              @click="toggleAll"
+            >{{ allSelected ? '取消全选' : '全选' }}</button>
+            <button
+              class="inv-sell"
+              :class="{ active: selected.size > 0 }"
+              :disabled="selected.size === 0"
+              @click="sellSelected"
+            >卖出 {{ selected.size }} 件 (💰{{ sellTotal }})</button>
+          </div>
+        </div>
       </div>
     </Transition>
   </Teleport>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, inject } from 'vue'
 import { useGameStore } from '@/stores/game'
-import type { InventoryItem } from '@/systems/inventory'
 
 defineProps<{ visible: boolean }>()
 defineEmits<{ close: [] }>()
 
 const game = useGameStore()
+const toast = inject<(msg: string, type?: string) => void>('showToast', () => {})
 
-const capacityPercent = computed(() =>
-  Math.round((game.inventory.usedCapacity / game.inventory.capacity) * 100)
+const filter = ref('all')
+const selected = ref(new Set<string>())
+
+const filterTabs = [
+  { key: 'all', label: '全部' },
+  { key: 'crop', label: '🌾 作物' },
+  { key: 'animal_product', label: '🥚 畜产' },
+  { key: 'flower', label: '💐 花卉' },
+  { key: 'processed', label: '🔧 加工品' },
+]
+
+const allItems = computed(() => {
+  if (!game.inventory?.items) return []
+  return Object.entries(game.inventory.items).map(([id, item]: [string, any]) => ({
+    id, name: item.name, emoji: item.emoji, type: item.type,
+    count: item.count, price: item.sellPrice,
+  }))
+})
+
+const totalCount = computed(() => allItems.value.reduce((s: number, i: any) => s + i.count, 0))
+
+const filteredItems = computed(() => {
+  if (filter.value === 'all') return allItems.value
+  return allItems.value.filter((i: any) => i.type === filter.value)
+})
+
+const allSelected = computed(() =>
+  filteredItems.value.length > 0 && filteredItems.value.every((i: any) => selected.value.has(i.id))
 )
 
-interface ItemGroup {
-  type: string
-  label: string
-  items: InventoryItem[]
+const sellTotal = computed(() =>
+  filteredItems.value.reduce((s: number, i: any) => selected.value.has(i.id) ? s + i.price * i.count : s, 0)
+)
+
+function toggle(id: string) {
+  const s = new Set(selected.value)
+  s.has(id) ? s.delete(id) : s.add(id)
+  selected.value = s
 }
 
-const itemGroups = computed<ItemGroup[]>(() => {
-  const allItems = Object.values(game.inventory.items)
-  return [
-    { type: 'crop', label: '🌾 农作物', items: allItems.filter(i => i.type === 'crop') },
-    { type: 'animal_product', label: '🐄 动物产品', items: allItems.filter(i => i.type === 'animal_product') },
-    { type: 'flower', label: '🌷 花卉', items: allItems.filter(i => i.type === 'flower') },
-    { type: 'processed', label: '🔧 加工品', items: allItems.filter(i => i.type === 'processed') },
-  ]
-})
+function toggleAll() {
+  if (allSelected.value) { selected.value = new Set() }
+  else { selected.value = new Set(filteredItems.value.map((i: any) => i.id)) }
+}
+
+function sellSelected() {
+  let c = 0
+  for (const id of selected.value) {
+    const item = allItems.value.find((i: any) => i.id === id)
+    if (item) { game.sellAllOfType(id); c++ }
+  }
+  selected.value = new Set()
+  toast(`卖出 ${c} 种物品 💰`, 'success')
+}
 </script>
 
 <style lang="scss" scoped>
-@use '@/styles/variables' as *;
-
 .inv-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 800;
-  background: rgba(42, 31, 20, 0.55);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.inv-panel {
-  width: 100%;
-  max-width: $max-content-width;
-  max-height: 70vh;
-  background: linear-gradient(180deg, #fff8e8 0%, #f5ecd4 100%);
-  border: 3px solid $world-wood;
-  border-bottom: none;
-  border-radius: $radius-xl $radius-xl 0 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
-.panel-header {
-  display: flex;
-  align-items: center;
-  gap: $spacing-sm;
-  padding: $spacing-md $spacing-lg;
-  border-bottom: 2px solid rgba(139, 105, 20, 0.2);
-  background: linear-gradient(180deg, rgba(196, 154, 44, 0.15) 0%, transparent 100%);
-
-  h3 { font-size: $font-size-lg; color: $color-text-dark; font-weight: 700; flex: 1; }
-}
-
-.header-capacity {
-  display: flex;
-  align-items: center;
-  gap: $spacing-xs;
-  font-size: $font-size-xs;
-  font-weight: 700;
-  color: #8a6d1b;
-}
-
-.cap-bar {
-  width: 50px; height: 5px;
-  background: rgba(139, 105, 20, 0.12);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.cap-fill {
-  height: 100%;
-  background: linear-gradient(90deg, $color-primary, #a8d86e);
-  border-radius: 3px;
-  transition: width $transition-normal;
-}
-
-.close-btn {
-  width: 28px; height: 28px;
-  border-radius: $radius-round;
+  position: fixed; inset: 0; z-index: 800;
+  background: rgba(0,0,0,.4); backdrop-filter: blur(3px);
   display: flex; align-items: center; justify-content: center;
-  font-size: 14px; color: $color-text-light;
-  background: rgba(139, 105, 20, 0.12);
-  &:hover { background: rgba(139, 105, 20, 0.25); }
 }
-
-.panel-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: $spacing-md $spacing-lg;
+.inv-panel {
+  width: 320px; max-height: 75vh;
+  background: linear-gradient(180deg, #fff8e8, #f0e4c8);
+  border: 3px solid #a07840; border-radius: 16px;
+  display: flex; flex-direction: column; overflow: hidden;
 }
-
-.inv-group { margin-bottom: $spacing-lg; }
-
-.group-title {
-  font-size: $font-size-md;
-  font-weight: 700;
-  color: $color-text-dark;
-  margin-bottom: $spacing-sm;
-  padding-left: $spacing-xs;
+.inv-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-bottom: 2px solid rgba(160,120,64,.2);
+  h3 { font-size: 15px; font-weight: 700; color: #4a3728; flex:1; margin:0; }
 }
-
-.empty-hint {
-  font-size: $font-size-xs;
-  color: $color-text-light;
-  text-align: center;
-  padding: $spacing-md;
+.inv-count { font-size: 11px; font-weight: 700; color: #8a6d1b; background: rgba(160,120,64,.1); padding: 3px 10px; border-radius: 10px; }
+.inv-close { width: 26px; height: 26px; border-radius: 50%; font-size: 13px; background: rgba(0,0,0,.08); border:none; cursor:pointer; }
+.inv-tabs { display: flex; border-bottom: 1px solid rgba(160,120,64,.15); overflow-x: auto; }
+.inv-tab {
+  padding: 6px 10px; font-size: 10px; font-weight: 600; white-space: nowrap;
+  color: #8a7a68; background: none; border: none;
+  border-bottom: 2px solid transparent; cursor: pointer;
+  &.active { color: #4a3728; border-bottom-color: #a07840; }
 }
-
-.inv-grid {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xs;
-}
-
+.inv-body { flex:1; overflow-y: auto; padding: 10px 14px; }
+.inv-empty { text-align: center; color: #8a7a68; font-size: 13px; padding: 32px 0; }
+.inv-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
 .inv-item {
-  display: flex;
-  align-items: center;
-  gap: $spacing-sm;
-  padding: $spacing-sm $spacing-md;
-  background: rgba(139, 105, 20, 0.04);
-  border: 1.5px solid rgba(139, 105, 20, 0.08);
-  border-radius: $radius-md;
-
-  &.material {
-    background: rgba(106, 176, 76, 0.06);
-    border-color: rgba(106, 176, 76, 0.12);
-  }
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 6px 8px; background: rgba(255,255,255,.5);
+  border: 2px solid rgba(160,120,64,.2); border-radius: 10px;
+  cursor: pointer; transition: all .12s;
+  &:active { transform: scale(.95); }
+  &.selected { background: rgba(240,192,64,.25); border-color: #d4a640; }
+}
+.inv-check {
+  position: absolute; top: 4px; right: 4px;
+  width: 18px; height: 18px; border-radius: 4px;
+  border: 2px solid rgba(160,120,64,.3); background: rgba(255,255,255,.6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #4a3728;
+  &.on { background: #f0c040; border-color: #c49a2c; }
+}
+.inv-emoji { font-size: 26px; }
+.inv-name { font-size: 10px; font-weight: 600; color: #4a3728; text-align: center; }
+.inv-qty { font-size: 10px; font-weight: 700; color: #8a6d1b; }
+.inv-footer {
+  display: flex; gap: 8px; padding: 10px 14px;
+  border-top: 2px solid rgba(160,120,64,.2);
+}
+.inv-select-all {
+  padding: 8px 14px; font-size: 12px; font-weight: 600;
+  background: rgba(0,0,0,.06); border: none; border-radius: 8px; color: #6a5a48; cursor: pointer;
+}
+.inv-sell {
+  flex:1; padding: 8px 14px; font-size: 12px; font-weight: 700;
+  background: rgba(0,0,0,.06); border: none; border-radius: 8px; color: #6a5a48; cursor: pointer;
+  transition: all .15s;
+  &.active { background: #c49a2c; color: #fff; }
+  &:disabled { opacity: .4; cursor: not-allowed; }
 }
 
-.inv-emoji { font-size: 22px; }
-
-.inv-name {
-  flex: 1;
-  font-size: $font-size-sm;
-  font-weight: 600;
-  color: $color-text-dark;
-  text-align: left;
-}
-
-.inv-count {
-  font-size: $font-size-sm;
-  font-weight: 700;
-  color: $color-primary;
-}
-
-.inv-actions {
-  display: flex;
-  gap: $spacing-xs;
-}
-
-.sell-btn, .sell-all-btn {
-  padding: 3px 8px;
-  border-radius: $radius-sm;
-  font-size: $font-size-xs;
-  font-weight: 600;
-}
-
-.sell-btn {
-  background: rgba(106, 176, 76, 0.15);
-  color: $color-primary;
-}
-
-.sell-all-btn {
-  background: rgba(139, 105, 20, 0.12);
-  color: #8a6d1b;
-}
+.modal-fade-enter-active,.modal-fade-leave-active { transition: opacity .2s; }
+.modal-fade-enter-from,.modal-fade-leave-to { opacity: 0; }
 </style>
