@@ -1,27 +1,31 @@
 <template>
-  <Transition name="float-up">
-    <div v-if="visible" class="toast" :class="type">
-      <span class="toast-emoji">{{ typeEmoji }}</span>
-      <span class="toast-text">{{ message }}</span>
-    </div>
-  </Transition>
+  <div class="toast-container">
+    <Transition name="slide-up">
+      <div v-if="visible" class="toast" :class="type">
+        <span class="toast-icon">{{ typeIcon }}</span>
+        <span class="toast-msg">{{ message }}</span>
+      </div>
+    </Transition>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   visible: boolean
   message: string
   type?: 'success' | 'error' | 'info'
-}>()
+}>(), {
+  type: 'success'
+})
 
-const typeEmoji = computed(() => {
+const typeIcon = computed(() => {
   switch (props.type) {
-    case 'success': return '✅'
+    case 'success': return '✨'
     case 'error': return '❌'
-    case 'info': return 'ℹ️'
-    default: return '✅'
+    case 'info': return '💡'
+    default: return '✨'
   }
 })
 </script>
@@ -29,49 +33,45 @@ const typeEmoji = computed(() => {
 <style lang="scss" scoped>
 @use '@/styles/variables' as *;
 
-.toast {
+.toast-container {
   position: fixed;
   top: 80px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 2000;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.toast {
   display: flex;
   align-items: center;
   gap: $spacing-sm;
   padding: $spacing-sm $spacing-lg;
-  border-radius: $radius-md;
-  background: $color-card;
-  box-shadow: $shadow-card;
-  font-size: $font-size-md;
+  border-radius: 24px;
+  background: $color-hud-bg;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
   white-space: nowrap;
-  animation: fadeIn 0.2s ease;
 
-  &.success { border-left: 3px solid $color-primary; }
-  &.error { border-left: 3px solid $color-danger; }
-  &.info { border-left: 3px solid #4a8aff; }
+  &.success {
+    border: 1px solid rgba(106, 176, 76, 0.4);
+  }
+  &.error {
+    border: 1px solid rgba(231, 76, 60, 0.4);
+  }
+  &.info {
+    border: 1px solid rgba(91, 184, 245, 0.4);
+  }
 }
 
-.toast-emoji {
+.toast-icon {
   font-size: 16px;
 }
 
-.toast-text {
-  color: $color-text;
-  font-weight: 500;
-}
-
-.float-up-enter-active {
-  transition: all 0.3s ease;
-}
-.float-up-leave-active {
-  transition: all 0.3s ease;
-}
-.float-up-enter-from {
-  opacity: 0;
-  transform: translateX(-50%) translateY(-10px);
-}
-.float-up-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) translateY(-10px);
+.toast-msg {
+  font-size: $font-size-sm;
+  color: $color-hud-text;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 </style>

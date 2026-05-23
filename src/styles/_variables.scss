@@ -1,57 +1,85 @@
 // ============================================
-// 种田经营游戏 - 设计变量
+// 种田经营游戏 - 2.5D 农场世界设计变量
 // ============================================
 
-// --- 四季色调 ---
+// --- 世界色调 ---
+$world-grass-light: #7ec850;
+$world-grass-mid: #5ea832;
+$world-grass-dark: #3d7a1c;
+$world-dirt: #9b7653;
+$world-dirt-wet: #6b4f35;
+$world-dirt-light: #c4a882;
+$world-path: #d4b896;
+$world-path-dark: #b89b78;
+$world-water: #5bb8f5;
+$world-water-deep: #3a8fd4;
+$world-wood: #8b6914;
+$world-wood-light: #c49a2c;
+$world-wood-dark: #5c4510;
+$world-stone: #a0a0a0;
+$world-stone-dark: #707070;
+$world-fence: #a07840;
+
+// --- 季节世界色 ---
 $season-spring: (
-  bg: #f0f7e6,
-  accent: #a8d86e,
-  text: #4a6741,
-  highlight: #e8f5d8,
+  bg: #7ec850,
+  sky: #b5e8a0,
+  accent: #f8a0c8,
+  ground: #5ea832,
+  grass: #90d860,
 );
 
 $season-summer: (
-  bg: #fff8e1,
+  bg: #6db83a,
+  sky: #ffe8a0,
   accent: #f0c040,
-  text: #8a6d1b,
-  highlight: #fff3c4,
+  ground: #5a9828,
+  grass: #80c840,
 );
 
 $season-autumn: (
-  bg: #fdf0e2,
-  accent: #e8943a,
-  text: #7a4a1a,
-  highlight: #fce4c8,
+  bg: #c89840,
+  sky: #f5d090,
+  accent: #e07020,
+  ground: #a07830,
+  grass: #b8a040,
 );
 
 $season-winter: (
-  bg: #e8eef5,
-  accent: #7eb8d8,
-  text: #4a5e78,
-  highlight: #d4e6f2,
+  bg: #c0d8e8,
+  sky: #e0eef8,
+  accent: #80b0d0,
+  ground: #e8e8e8,
+  grass: #a0c0a8,
 );
 
 // --- 通用色 ---
-$color-bg: #f5f0e8;
-$color-card: #ffffff;
+$color-bg: $world-grass-mid;
+$color-card: rgba(255, 255, 255, 0.92);
 $color-primary: #6ab04c;
 $color-secondary: #f0c040;
 $color-danger: #e74c3c;
-$color-text: #4a4a4a;
-$color-text-light: #8a8a8a;
-$color-border: #e0ddd5;
-$color-shadow: rgba(0, 0, 0, 0.08);
+$color-text: #4a3728;
+$color-text-light: #8a7a68;
+$color-text-dark: #2a1f14;
+$color-border: rgba(139, 105, 20, 0.25);
+$color-shadow: rgba(0, 0, 0, 0.2);
+$color-hud-bg: rgba(42, 31, 20, 0.75);
+$color-hud-text: #fff8e8;
 
 // --- 阴影 ---
 $shadow-soft: 0 2px 8px $color-shadow;
 $shadow-card: 0 4px 16px $color-shadow;
-$shadow-button: 0 2px 6px rgba(106, 176, 76, 0.3);
+$shadow-button: 0 3px 8px rgba(92, 69, 16, 0.4);
+$shadow-iso: 4px 4px 0 rgba(0, 0, 0, 0.15);
+$shadow-iso-deep: 6px 6px 0 rgba(0, 0, 0, 0.2);
+$shadow-glow: 0 0 12px rgba(106, 176, 76, 0.5);
 
 // --- 圆角 ---
 $radius-sm: 8px;
 $radius-md: 12px;
 $radius-lg: 16px;
-$radius-xl: 20px;
+$radius-xl: 24px;
 $radius-round: 50%;
 
 // --- 字体 ---
@@ -78,5 +106,21 @@ $transition-slow: 0.4s ease;
 
 // --- 布局 ---
 $header-height: 56px;
-$nav-height: 64px;
+$nav-height: 72px;
 $max-content-width: 480px;
+
+// --- 等距投影 ---
+$iso-angle: 45deg;
+$iso-skew: 35.264deg;
+$iso-unit: 64px;
+$iso-half: 32px;
+$iso-tile-width: 80px;
+$iso-tile-height: 40px;
+$iso-z-scale: 0.5;
+
+// --- 木纹按钮 ---
+$wood-bg: linear-gradient(180deg, #c49a2c 0%, #a07820 40%, #8b6914 100%);
+$wood-bg-active: linear-gradient(180deg, #a07820 0%, #8b6914 40%, #6b5000 100%);
+$wood-border: #5c4510;
+$wood-text: #fff8e0;
+$wood-shadow: 0 3px 0 #4a3508, 0 5px 8px rgba(0,0,0,0.3);

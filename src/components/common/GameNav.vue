@@ -4,13 +4,13 @@
       <button
         v-for="tab in tabs"
         :key="tab.id"
-        class="nav-btn"
+        class="wood-btn"
         :class="{ active: currentTab === tab.id, locked: !tab.unlocked }"
         @click="tab.unlocked && $emit('change', tab.id)"
       >
-        <span class="nav-emoji">{{ tab.emoji }}</span>
-        <span class="nav-label">{{ tab.label }}</span>
-        <span v-if="!tab.unlocked" class="nav-lock">🔒</span>
+        <span class="wood-btn-emoji">{{ tab.emoji }}</span>
+        <span class="wood-btn-label">{{ tab.label }}</span>
+        <span v-if="!tab.unlocked" class="wood-btn-lock">🔒</span>
       </button>
     </div>
   </nav>
@@ -46,13 +46,14 @@ const tabs = computed(() => [
 @use '@/styles/variables' as *;
 
 .game-nav {
-  position: sticky;
+  position: fixed;
   bottom: 0;
-  z-index: 100;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid $color-border;
-  padding: $spacing-xs 0 env(safe-area-inset-bottom, 0);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  padding: $spacing-xs $spacing-sm;
+  padding-bottom: max(#{$spacing-xs}, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(42,31,20,0.0) 0%, rgba(42,31,20,0.85) 30%);
 }
 
 .nav-inner {
@@ -62,47 +63,72 @@ const tabs = computed(() => [
   margin: 0 auto;
 }
 
-.nav-btn {
+.wood-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: $spacing-xs $spacing-sm;
-  border-radius: $radius-sm;
-  transition: all $transition-fast;
+  padding: 6px 12px 5px;
+  border-radius: 10px;
+  background: $wood-bg;
+  border: 2px solid $wood-border;
+  box-shadow: $wood-shadow;
   position: relative;
+  transition: all $transition-fast;
+  min-width: 52px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 6px;
+    right: 6px;
+    height: 4px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 0 0 4px 4px;
+  }
 
   &.active {
-    background: rgba($color-primary, 0.12);
-    .nav-label { color: $color-primary; font-weight: 700; }
-    .nav-emoji { transform: scale(1.1); }
+    background: $wood-bg-active;
+    box-shadow: 0 1px 0 #4a3508, 0 2px 4px rgba(0,0,0,0.3);
+    transform: translateY(2px);
+    border-color: #3d2e08;
+
+    .wood-btn-label { color: #ffe8a0; font-weight: 700; }
+    .wood-btn-emoji { transform: scale(1.15); }
+
+    &::before { opacity: 0.08; }
   }
 
   &.locked {
-    opacity: 0.5;
-    .nav-label { color: $color-text-light; }
+    opacity: 0.45;
+    filter: grayscale(0.5);
   }
 
   &:not(.locked):active {
-    transform: scale(0.95);
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #4a3508, 0 2px 4px rgba(0,0,0,0.3);
   }
 }
 
-.nav-emoji {
-  font-size: 22px;
+.wood-btn-emoji {
+  font-size: 20px;
+  line-height: 1;
   transition: transform $transition-fast;
 }
 
-.nav-label {
-  font-size: $font-size-xs;
-  color: $color-text;
-  font-weight: 500;
+.wood-btn-label {
+  font-size: 9px;
+  color: $wood-text;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  letter-spacing: 0.5px;
 }
 
-.nav-lock {
+.wood-btn-lock {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: -2px;
+  right: -2px;
   font-size: 10px;
 }
 </style>

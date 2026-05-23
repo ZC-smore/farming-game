@@ -1,39 +1,42 @@
 <template>
-  <div class="game-header">
-    <div class="resource-bar">
-      <div class="resource-item coins">
-        <span class="resource-emoji">🪙</span>
-        <span class="resource-value">{{ game.coins }}</span>
+  <div class="game-hud">
+    <div class="hud-top">
+      <!-- 金币 -->
+      <div class="hud-item hud-coins">
+        <span class="hud-icon">🪙</span>
+        <span class="hud-val">{{ game.coins }}</span>
       </div>
-      <div class="resource-item water" @click="showWaterDetail = !showWaterDetail">
-        <span class="resource-emoji">💧</span>
-        <span class="resource-value">{{ game.water }}/{{ game.maxWater }}</span>
-        <div class="water-bar">
-          <div class="water-bar-fill" :style="{ width: waterPercent + '%' }"></div>
+      <!-- 水 -->
+      <div class="hud-item hud-water">
+        <span class="hud-icon">💧</span>
+        <span class="hud-val">{{ game.water }}/{{ game.maxWater }}</span>
+        <div class="hud-bar">
+          <div class="hud-bar-fill water-fill" :style="{ width: waterPercent + '%' }"></div>
         </div>
       </div>
-      <div class="resource-item level">
-        <span class="resource-emoji">⭐</span>
-        <span class="resource-value">Lv.{{ game.level }}</span>
-        <div class="exp-bar">
-          <div class="exp-bar-fill" :style="{ width: (game.expProgress * 100) + '%' }"></div>
+      <!-- 等级 -->
+      <div class="hud-item hud-level">
+        <span class="hud-icon">⭐</span>
+        <span class="hud-val">Lv.{{ game.level }}</span>
+        <div class="hud-bar">
+          <div class="hud-bar-fill exp-fill" :style="{ width: (game.expProgress * 100) + '%' }"></div>
         </div>
       </div>
-      <div class="resource-item season">
-        <span class="season-emoji">{{ seasonEmoji }}</span>
-        <span class="resource-value season-text">{{ seasonName }} Day{{ seasonDay }}</span>
+      <!-- 季节 -->
+      <div class="hud-item hud-season">
+        <span class="hud-icon">{{ seasonEmoji }}</span>
+        <span class="hud-val">{{ seasonName }} Day{{ seasonDay }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { getSeasonEmoji, getSeasonName } from '@/systems/season'
 
 const game = useGameStore()
-const showWaterDetail = ref(false)
 
 const waterPercent = computed(() => Math.round((game.water / game.maxWater) * 100))
 const seasonEmoji = computed(() => getSeasonEmoji(game.currentSeasonInfo.season))
@@ -44,88 +47,81 @@ const seasonDay = computed(() => game.currentSeasonInfo.dayInSeason)
 <style lang="scss" scoped>
 @use '@/styles/variables' as *;
 
-.game-header {
-  position: sticky;
+.game-hud {
+  position: fixed;
   top: 0;
-  z-index: 100;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  pointer-events: none;
   padding: $spacing-sm $spacing-md;
-  box-shadow: $shadow-soft;
+  padding-top: max(#{$spacing-sm}, env(safe-area-inset-top));
 }
 
-.resource-bar {
+.hud-top {
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
+  gap: $spacing-xs;
   max-width: $max-content-width;
   margin: 0 auto;
 }
 
-.resource-item {
+.hud-item {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px;
-  border-radius: $radius-sm;
-  background: rgba(0, 0, 0, 0.04);
-  font-size: $font-size-sm;
-  white-space: nowrap;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background: $color-hud-bg;
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+  animation: dropBounce 0.4s ease backwards;
 
-  &.coins {
-    background: rgba(240, 192, 64, 0.15);
-    .resource-value { color: #8a6d1b; font-weight: 700; }
-  }
-  &.water {
-    background: rgba(106, 176, 76, 0.1);
-    .resource-value { color: #4a8a3a; }
-  }
-  &.level {
-    background: rgba(106, 76, 176, 0.1);
-    .resource-value { color: #5a3a9a; }
-  }
-  &.season {
-    margin-left: auto;
-  }
+  &:nth-child(1) { animation-delay: 0s; }
+  &:nth-child(2) { animation-delay: 0.05s; }
+  &:nth-child(3) { animation-delay: 0.1s; }
+  &:nth-child(4) { animation-delay: 0.15s; }
 }
 
-.resource-emoji {
+.hud-icon {
   font-size: 14px;
+  line-height: 1;
 }
 
-.resource-value {
-  font-weight: 600;
+.hud-val {
   font-size: $font-size-xs;
+  font-weight: 700;
+  color: $color-hud-text;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-.season-emoji {
-  font-size: 14px;
-}
-
-.season-text {
-  font-size: $font-size-xs;
-  color: $color-text-light;
-}
-
-.water-bar, .exp-bar {
-  width: 40px;
-  height: 4px;
-  background: rgba(0, 0, 0, 0.08);
-  border-radius: 2px;
+.hud-bar {
+  width: 36px;
+  height: 5px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 3px;
   overflow: hidden;
 }
 
-.water-bar-fill {
+.hud-bar-fill {
   height: 100%;
-  background: #4a8aff;
-  border-radius: 2px;
+  border-radius: 3px;
   transition: width $transition-normal;
 }
 
-.exp-bar-fill {
-  height: 100%;
-  background: #9b59b6;
-  border-radius: 2px;
-  transition: width $transition-normal;
+.water-fill {
+  background: linear-gradient(90deg, #4a8aff, #7bc0ff);
+}
+
+.exp-fill {
+  background: linear-gradient(90deg, #9b59b6, #c88ef5);
+}
+
+.hud-season {
+  margin-left: auto;
+  .hud-val {
+    font-size: 10px;
+    opacity: 0.85;
+  }
 }
 </style>

@@ -34,7 +34,8 @@ defineEmits<{
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(42, 31, 20, 0.55);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -42,15 +43,18 @@ defineEmits<{
 }
 
 .modal-content {
-  background: $color-card;
-  border-radius: $radius-lg;
+  background: linear-gradient(180deg, #fff8e8 0%, #f5ecd4 100%);
+  border: 3px solid $world-wood;
+  border-radius: $radius-xl;
   width: 100%;
   max-width: 380px;
   max-height: 80vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255,255,255,0.5);
   animation: popIn 0.25s ease;
 }
 
@@ -59,11 +63,13 @@ defineEmits<{
   align-items: center;
   justify-content: space-between;
   padding: $spacing-md $spacing-lg;
-  border-bottom: 1px solid $color-border;
+  border-bottom: 2px solid rgba(139, 105, 20, 0.2);
+  background: linear-gradient(180deg, rgba(196, 154, 44, 0.15) 0%, transparent 100%);
 
   h3 {
     font-size: $font-size-lg;
-    color: $color-text;
+    color: $color-text-dark;
+    font-weight: 700;
   }
 }
 
@@ -76,10 +82,10 @@ defineEmits<{
   justify-content: center;
   font-size: 14px;
   color: $color-text-light;
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(139, 105, 20, 0.12);
 
   &:hover {
-    background: rgba(0, 0, 0, 0.1);
+    background: rgba(139, 105, 20, 0.25);
   }
 }
 

@@ -74,7 +74,6 @@ function handleTabChange(tab: TabId) {
   currentTab.value = tab
 }
 
-// 新手引导
 function nextTutorial() {
   tutorialStep.value++
 }
@@ -90,20 +89,16 @@ let gameLoop: ReturnType<typeof setInterval> | null = null
 let autoSaveTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
-  // 加载存档
   const loaded = game.load()
   if (!loaded) {
-    // 新游戏，显示新手引导
     showTutorial.value = true
     tutorialStep.value = 1
   }
 
-  // 游戏主循环 - 每秒更新状态
   gameLoop = setInterval(() => {
     game.updateAllStates()
   }, 1000)
 
-  // 自动存档 - 每30秒
   autoSaveTimer = setInterval(() => {
     game.save()
   }, 30000)
@@ -124,23 +119,21 @@ onUnmounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  max-width: $max-content-width;
-  margin: 0 auto;
-  background: $color-bg;
+  position: relative;
+  overflow: hidden;
 }
 
 .game-main {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
+  position: relative;
+  overflow: hidden;
 }
 
 .tutorial-content {
   p {
     font-size: $font-size-md;
     line-height: 1.6;
-    color: $color-text;
+    color: $color-text-dark;
     margin-bottom: $spacing-md;
   }
 }
@@ -153,14 +146,19 @@ onUnmounted(() => {
 
 .tutorial-next-btn {
   padding: $spacing-sm $spacing-xl;
-  background: $color-primary;
-  color: #fff;
+  background: $wood-bg;
+  border: 2px solid $wood-border;
+  color: $wood-text;
   border-radius: $radius-md;
-  font-weight: 600;
+  font-weight: 700;
   font-size: $font-size-md;
-  box-shadow: $shadow-button;
+  box-shadow: $wood-shadow;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
   transition: all $transition-fast;
 
-  &:active { transform: scale(0.95); }
+  &:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #4a3508;
+  }
 }
 </style>
