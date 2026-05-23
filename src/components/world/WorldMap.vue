@@ -144,7 +144,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, inject } from 'vue'
+import { ref, reactive, computed, inject, onMounted, onUnmounted } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { CROP_CONFIGS, ANIMAL_CONFIGS, FLOWER_CONFIGS } from '@/configs'
 import { FARM_PLOT_PRICES, RANCH_SLOT_PRICES, GARDEN_POT_PRICES } from '@/configs/economy'
@@ -157,13 +157,15 @@ import type { FlowerPotData } from '@/systems/garden/state'
 import AreaLock from './AreaLock.vue'
 
 // ================================================================
-const WORLD_W = 1100; const WORLD_H = 1080
+// 四区 2×2 紧凑 930×930，世界 960×960
+// ================================================================
+const WORLD_W = 960; const WORLD_H = 960
 
 const zoneStyle = {
-  farm:     { left: '20px',  top: '20px',  width: '480px', height: '480px' },
-  ranch:    { left: '510px', top: '20px',  width: '480px', height: '480px' },
-  garden:   { left: '20px',  top: '510px', width: '480px', height: '480px' },
-  workshop: { left: '510px', top: '510px', width: '480px', height: '480px' },
+  farm:     { left: '10px',  top: '10px',  width: '460px', height: '460px' },
+  ranch:    { left: '480px', top: '10px',  width: '460px', height: '460px' },
+  garden:   { left: '10px',  top: '480px', width: '460px', height: '460px' },
+  workshop: { left: '480px', top: '480px', width: '460px', height: '460px' },
 }
 
 const game = useGameStore()
@@ -175,6 +177,15 @@ const toast = inject<(msg: string, type?: string) => void>('showToast', () => {}
 const viewportRef = ref<HTMLElement>()
 const pan = ref({ x: 0, y: 0 })
 const scale = ref(1)
+
+// auto-fit initial scale on mount
+function autoFit() {
+  const v = vp()
+  scale.value = Math.min(v.w / WORLD_W, v.h / WORLD_H)
+  clamp()
+}
+onMounted(() => { autoFit(); window.addEventListener('resize', autoFit) })
+onUnmounted(() => { window.removeEventListener('resize', autoFit) })
 let dragging = false, moved = false, animFrame = 0
 let dragOrigin = { x: 0, y: 0 }, panOrigin = { x: 0, y: 0 }
 
@@ -208,10 +219,10 @@ function onWheel(e: WheelEvent) {
 
 // ── Zone Zoom ──
 const ZONE_ZOOM = {
-  farm:     { x: 260, y: 260, w: 480, h: 480 },
-  ranch:    { x: 750, y: 260, w: 480, h: 480 },
-  garden:   { x: 260, y: 750, w: 480, h: 480 },
-  workshop: { x: 750, y: 750, w: 480, h: 480 },
+  farm:     { x: 240, y: 240, w: 460, h: 460 },
+  ranch:    { x: 710, y: 240, w: 460, h: 460 },
+  garden:   { x: 240, y: 710, w: 460, h: 460 },
+  workshop: { x: 710, y: 710, w: 460, h: 460 },
 }
 function zoomToZone(key: string) {
   const z = ZONE_ZOOM[key as keyof typeof ZONE_ZOOM]; if (!z) return
@@ -350,7 +361,7 @@ function expandGarden() {
 }
 .world-canvas {
   position: absolute; top:0; left:0;
-  width: 1100px; height: 1080px;
+  width: 960px; height: 960px;
   transform-origin: 0 0; will-change: transform;
 }
 
