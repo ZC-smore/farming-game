@@ -7,9 +7,11 @@
       <RanchView v-else-if="currentTab === 'ranch'" />
       <GardenView v-else-if="currentTab === 'garden'" />
       <WorkshopView v-else-if="currentTab === 'workshop'" />
-      <ShopView v-else-if="currentTab === 'shop'" />
-      <InventoryView v-else-if="currentTab === 'inventory'" />
     </main>
+
+    <!-- 商店/仓库：弹出面板 -->
+    <ShopView :visible="showShop" @close="showShop = false" />
+    <InventoryView :visible="showInventory" @close="showInventory = false" />
 
     <GameNav :current-tab="currentTab" @change="handleTabChange" />
 
@@ -70,8 +72,17 @@ provide('showToast', (msg: string, type: 'success' | 'error' | 'info' = 'success
   setTimeout(() => { toastVisible.value = false }, 1800)
 })
 
+const showShop = ref(false)
+const showInventory = ref(false)
+
 function handleTabChange(tab: TabId) {
-  currentTab.value = tab
+  if (tab === 'shop') {
+    showShop.value = true
+  } else if (tab === 'inventory') {
+    showInventory.value = true
+  } else {
+    currentTab.value = tab
+  }
 }
 
 function nextTutorial() {
