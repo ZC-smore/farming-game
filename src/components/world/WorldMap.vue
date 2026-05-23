@@ -158,33 +158,33 @@ import AreaLock from './AreaLock.vue'
 const WORLD_W = 2000
 const WORLD_H = 1400
 
-// 区域定义
+// 区域定义 (三角构图: 农田左下→房屋中右→河流左上)
 const ZONES = {
-  farm:      { left: 60,  top: 680,  w: 560, h: 560 },
-  house:     { left: 980, top: 340,  w: 500, h: 480 },
-  ranch:     { left: 1380, top: 720, w: 440, h: 420 },
-  garden:    { left: 480, top: 780, w: 280, h: 210 },
-  workshop:  { left: 880, top: 140, w: 280, h: 200 },
-  river:     { left: 40,  top: 20,   w: 520, h: 340 },
+  farm:      { left: 40,  top: 700,  w: 560, h: 560 },
+  house:     { left: 860, top: 460,  w: 460, h: 480 },
+  ranch:     { left: 1260, top: 700,  w: 440, h: 440 },
+  garden:    { left: 520, top: 820,  w: 270, h: 220 },
+  workshop:  { left: 880, top: 150,  w: 260, h: 220 },
+  river:     { left: 40,  top: 20,   w: 500, h: 400 },
 }
 
 const zoneStyle = {
-  farm:      { left: '60px',  top: '680px',  width: '560px', height: '560px' },
-  house:     { left: '980px', top: '340px',  width: '500px', height: '480px' },
-  ranch:     { left: '1380px',top: '720px',  width: '440px', height: '420px' },
-  garden:    { left: '480px', top: '780px',  width: '280px', height: '210px' },
-  workshop:  { left: '880px', top: '140px',  width: '280px', height: '200px' },
-  river:     { left: '40px',  top: '20px',   width: '520px', height: '340px' },
+  farm:      { left: '40px',  top: '700px',  width: '560px', height: '560px' },
+  house:     { left: '860px', top: '460px',  width: '460px', height: '480px' },
+  ranch:     { left: '1260px',top: '700px',  width: '440px', height: '440px' },
+  garden:    { left: '520px', top: '820px',  width: '270px', height: '220px' },
+  workshop:  { left: '880px', top: '150px',  width: '260px', height: '220px' },
+  river:     { left: '40px',  top: '20px',   width: '500px', height: '400px' },
 }
 
 // 区域中心 (镜头导航)
 const zoneCenters: Record<string, { x: number; y: number }> = {
-  farm:      { x: 340, y: 960 },
-  house:     { x: 1230, y: 580 },
-  ranch:     { x: 1600, y: 930 },
-  garden:    { x: 620, y: 885 },
-  workshop:  { x: 1020, y: 240 },
-  river:     { x: 300, y: 190 },
+  farm:      { x: 320, y: 980 },
+  house:     { x: 1090, y: 700 },
+  ranch:     { x: 1480, y: 920 },
+  garden:    { x: 655, y: 930 },
+  workshop:  { x: 1010, y: 260 },
+  river:     { x: 290, y: 220 },
 }
 
 // ================================================================
@@ -496,11 +496,16 @@ function onPotClick(p: FlowerPotData) { if (moved) return; if (p.state === 'BLOO
   border: 2px solid rgba(0,0,0,0.1);
   z-index: 5;
 }
-.path-main   { top: 700px;  left: 600px;  width: 100px; height: 360px; transform: rotate(-38deg); transform-origin: center top; }
-.path-ranch  { top: 850px;  left: 1080px; width: 340px; height: 60px; }
-.path-garden { top: 920px;  left: 310px;  width: 230px; height: 50px; transform: rotate(10deg); }
-.path-workshop { top: 420px; left: 1000px; width: 50px; height: 140px; transform: rotate(22deg); }
-.path-river  { top: 380px;  left: 260px;  width: 50px; height: 340px; }
+// 主路: 房屋左下 → 农田右上 (对角线)
+.path-main   { top: 860px;  left: 620px;  width: 90px; height: 300px; transform: rotate(-42deg); transform-origin: center top; }
+// 房屋 → 牧场 (水平连接)
+.path-ranch  { top: 820px;  left: 1220px; width: 140px; height: 55px; }
+// 农田 → 花园 (短连接)
+.path-garden { top: 900px;  left: 480px;  width: 120px; height: 45px; transform: rotate(8deg); }
+// 房屋 → 工坊 (竖直上连)
+.path-workshop { top: 380px; left: 1020px; width: 45px; height: 140px; }
+// 河流 → 农田 (左侧直连)
+.path-river  { top: 400px;  left: 240px;  width: 45px; height: 310px; }
 
 @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 @keyframes cropSway { 0%,100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
