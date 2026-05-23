@@ -29,6 +29,7 @@
                 <span class="inv-emoji">{{ item.emoji }}</span>
                 <span class="inv-name">{{ item.name }}</span>
                 <span class="inv-qty">×{{ item.count }}</span>
+                <span class="inv-price">💰{{ item.price }}</span>
               </button>
             </div>
           </div>
@@ -125,7 +126,7 @@ function sellSelected() {
   display: flex; align-items: center; justify-content: center;
 }
 .inv-panel {
-  width: 320px; max-height: 75vh;
+  width: 320px; height: 440px;
   background: linear-gradient(180deg, #fff8e8, #f0e4c8);
   border: 3px solid #a07840; border-radius: 16px;
   display: flex; flex-direction: column; overflow: hidden;
@@ -166,6 +167,7 @@ function sellSelected() {
 .inv-emoji { font-size: 26px; }
 .inv-name { font-size: 10px; font-weight: 600; color: #4a3728; text-align: center; }
 .inv-qty { font-size: 10px; font-weight: 700; color: #8a6d1b; }
+.inv-price { font-size: 9px; font-weight: 600; color: #c49a2c; }
 .inv-footer {
   display: flex; gap: 8px; padding: 10px 14px;
   border-top: 2px solid rgba(160,120,64,.2);

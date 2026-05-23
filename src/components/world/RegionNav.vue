@@ -6,12 +6,11 @@
       class="rn-btn"
       @click="$emit('zoom', r.key)"
     >{{ r.icon }}</button>
-    <button class="rn-btn rn-reset" @click="$emit('reset')">🔍</button>
   </div>
 </template>
 
 <script setup lang="ts">
-defineEmits<{ zoom: [key: string]; reset: [] }>()
+defineEmits<{ zoom: [key: string] }>()
 const regions = [
   { key: 'farm', icon: '🌾' },
   { key: 'ranch', icon: '🐄' },

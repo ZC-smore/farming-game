@@ -3,7 +3,7 @@
     <GameHeader />
     <main class="game-main">
       <WorldMap ref="worldRef" />
-      <RegionNav @zoom="onZoom" @reset="onReset" />
+      <RegionNav @zoom="onZoom" />
     </main>
 
     <!-- 弹出面板 -->
@@ -63,8 +63,8 @@ provide('showToast', (msg: string, type: 'success' | 'error' | 'info' = 'success
 const showShop = ref(false)
 const showInventory = ref(false)
 
-function onZoom(zone: string) { worldRef.value?.zoomToZone(zone) }
-function onReset() { worldRef.value?.resetView() }
+function onZoom(zone: string) { (worldRef.value as any)?.zoomToZone?.(zone) }
+
 
 // Tutorial
 const showTutorial = ref(false)

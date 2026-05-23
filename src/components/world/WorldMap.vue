@@ -120,20 +120,19 @@
     <Teleport to="body">
       <div v-if="seedPicker.visible" class="seed-picker-overlay" @click.self="seedPicker.visible=false">
         <div class="seed-picker">
-          <div class="sp-title">🌱 选择要种植的作物</div>
-          <div class="sp-list">
+          <div class="sp-title">🌱 选择背包中的种子</div>
+          <div v-if="availableSeeds.length === 0" style="text-align:center;padding:16px;color:#8a7a68;font-size:13px">背包中没有种子，去商店购买吧 🏪</div>
+          <div v-else class="sp-list">
             <div
               v-for="c in availableSeeds"
               :key="c.id"
               class="sp-item"
-              :class="{ 'sp-locked': c.locked }"
-              @click="!c.locked && plantSeed(c.id)"
+              @click="plantSeed(c.id)"
             >
               <span class="sp-emoji">{{ c.emoji }}</span>
               <div class="sp-info">
                 <span class="sp-name">{{ c.name }}</span>
-                <span v-if="c.locked" class="sp-locked-tag">🔒 Lv.{{ c.unlockLevel }} 解锁</span>
-                <span v-else class="sp-price">💰{{ c.price }} · ⏱{{ c.timeStr }}</span>
+                <span class="sp-price">⏱{{ c.timeStr }} · ×{{ c.count }}</span>
               </div>
             </div>
           </div>
@@ -149,6 +148,7 @@ import { ref, reactive, computed, inject } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { CROP_CONFIGS, ANIMAL_CONFIGS, FLOWER_CONFIGS } from '@/configs'
 import { FARM_PLOT_PRICES, RANCH_SLOT_PRICES, GARDEN_POT_PRICES } from '@/configs/economy'
+import { removeItem } from '@/systems/inventory'
 import type { CropId } from '@/configs/crops'
 import type { AnimalId } from '@/configs/animals'
 import type { FlowerId } from '@/configs/flowers'
@@ -266,17 +266,21 @@ const gardenCanExpand = computed(() => {
 
 // ── Seed Picker ──
 const seedPicker = reactive({ visible: false, tileIdx: -1 })
-const availableSeeds = computed(() =>
-  Object.entries(CROP_CONFIGS).map(([id, c]) => ({
-    id: id as CropId,
-    name: c.name, emoji: c.emoji, price: c.seedPrice,
-    unlockLevel: c.unlockLevel, locked: game.level < c.unlockLevel,
-    timeStr: `${c.growTimeSeconds}s`,
-  }))
-)
+const availableSeeds = computed(() => {
+  if (!game.inventory?.items) return []
+  return Object.entries(game.inventory.items)
+    .filter(([id, item]: [string, any]) => CROP_CONFIGS[id as CropId] && item.count > 0)
+    .map(([id, item]: [string, any]) => {
+      const c = CROP_CONFIGS[id as CropId]
+      return { id: id as CropId, name: c.name, emoji: c.emoji, count: item.count, timeStr: `${c.growTimeSeconds}s` }
+    })
+})
 function plantSeed(cropId: CropId) {
   if (seedPicker.tileIdx >= 0) {
-    if (game.plantCrop(seedPicker.tileIdx, cropId)) toast('已种植！🌱', 'success')
+    if (game.plantCrop(seedPicker.tileIdx, cropId)) {
+      game.inventory = removeItem(game.inventory, cropId, 1)
+      toast('已种植！🌱', 'success')
+    }
   }
   seedPicker.visible = false
 }

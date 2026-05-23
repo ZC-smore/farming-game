@@ -19,7 +19,7 @@
           <!-- 种子 Tab -->
           <div v-if="tab === 'seed'" class="sp-body">
             <div class="sp-grid">
-              <button v-for="c in seedItems" :key="c.id" class="sp-item" :class="{ locked: c.locked }" :disabled="c.locked || game.coins < c.price" @click="buy(c)">
+              <button v-for="c in seedItems" :key="c.id" class="sp-item" :class="{ locked: c.locked }" :disabled="c.locked || game.coins < c.price" @click="buySeed(c)">
                 <span class="sp-emoji">{{ c.emoji }}</span>
                 <span class="sp-name">{{ c.name }}</span>
                 <span v-if="c.locked" class="sp-lock">Lv.{{ c.unlockLevel }}</span>
@@ -31,7 +31,7 @@
           <!-- 花种 Tab -->
           <div v-if="tab === 'flower'" class="sp-body">
             <div class="sp-grid">
-              <button v-for="f in flowerItems" :key="f.id" class="sp-item" :class="{ locked: f.locked }" :disabled="f.locked || game.coins < f.price" @click="buy(f)">
+              <button v-for="f in flowerItems" :key="f.id" class="sp-item" :class="{ locked: f.locked }" :disabled="f.locked || game.coins < f.price" @click="buySeed(f)">
                 <span class="sp-emoji">{{ f.emoji }}</span>
                 <span class="sp-name">{{ f.name }}</span>
                 <span v-if="f.locked" class="sp-lock">Lv.{{ f.unlockLevel }}</span>
@@ -80,6 +80,7 @@ import { ref, computed, inject } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { CROP_CONFIGS, ANIMAL_CONFIGS, FLOWER_CONFIGS } from '@/configs'
 import { WATER_BUCKET_UPGRADES, WAREHOUSE_UPGRADE_PRICES } from '@/configs/economy'
+import { addItem } from '@/systems/inventory'
 
 defineProps<{ visible: boolean }>()
 defineEmits<{ close: [] }>()
@@ -116,7 +117,12 @@ const animalItems = computed(() =>
 const bucketNext = computed(() => WATER_BUCKET_UPGRADES.find(u => u.level === game.waterBucketLevel + 1))
 const whNext = computed(() => WAREHOUSE_UPGRADE_PRICES.find(u => u.level === game.warehouseLevel + 1))
 
-function buy(c: any) { toast(`去对应区域使用${c.name}吧！`.replace(/.{15}/, ''), 'info') }
+function buySeed(c: any) {
+  if (game.coins < c.price) return
+  game.coins -= c.price
+  game.inventory = addItem(game.inventory, c.id, c.name, c.emoji, 'seed', 1, c.price)
+  toast(`${c.name}种子 +1`, 'success')
+}
 function buyAnimal(a: any) {
   const idx = game.ranchSlots.findIndex((s: any) => !s.animalId)
   if (idx === -1) { toast('没有空栏位！点击🔒扩建', 'error'); return }
@@ -134,7 +140,7 @@ function upgradeWarehouse() { game.upgradeWarehouse() }
   display: flex; align-items: center; justify-content: center;
 }
 .shop-panel {
-  width: 320px; max-height: 75vh;
+  width: 320px; height: 440px;
   background: linear-gradient(180deg, #fff8e8, #f0e4c8);
   border: 3px solid #a07840; border-radius: 16px;
   display: flex; flex-direction: column; overflow: hidden;
