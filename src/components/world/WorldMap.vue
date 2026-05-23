@@ -1,187 +1,269 @@
 <template>
-  <div class="world-map" ref="mapRef"
-    @pointerdown="onPointerDown"
-    @pointermove="onPointerMove"
-    @pointerup="onPointerUp"
-    @pointerleave="onPointerUp"
-    @wheel.prevent="onWheel"
-    :style="mapStyle"
-  >
-    <!-- ===== 背景层 ===== -->
-    <div class="world-bg">
-      <div class="sky-layer"></div>
-      <div class="cloud cloud-1">☁️</div>
-      <div class="cloud cloud-2">⛅</div>
-      <div class="cloud cloud-3">🌤️</div>
-      <div class="river"></div>
-      <div class="path-main"></div>
-      <div class="path-branch-1"></div>
-      <div class="path-branch-2"></div>
+  <!-- ============================================================ -->
+  <!--  HAY DAY STYLE WORLD MAP — 2000×1400 可拖动农场世界         -->
+  <!-- ============================================================ -->
+  <div class="world-viewport" ref="viewportRef">
+    <!-- ── 前景遮挡层 (fixed to viewport) ── -->
+    <div class="viewport-fg">
+      <span class="fg-plant fgl">🌾</span>
+      <span class="fg-plant fgl2">🌿</span>
+      <span class="fg-plant fgr">🌾</span>
+      <span class="fg-plant fgr2">🌿</span>
+      <span class="fg-plant fgc">🌸</span>
     </div>
 
-    <!-- ===== 装饰层 ===== -->
-    <div class="world-decor">
-      <!-- 左上：河流区（装饰） -->
-      <div class="river-area">
-        <div class="river-water">💧</div>
-        <div class="river-water ripple">💧</div>
-        <div class="rocks">
-          <span class="rock">🪨</span>
-          <span class="rock">🪨</span>
-          <span class="rock">🪨</span>
+    <!-- ── 世界容器 ── -->
+    <div
+      class="world-canvas"
+      :style="canvasStyle"
+      @pointerdown="onDown"
+      @pointermove="onMove"
+      @pointerup="onUp"
+      @pointerleave="onUp"
+      @wheel.prevent="onWheel"
+    >
+      <!-- ============================================ -->
+      <!--  LAYER 1: 天空 + 云                        -->
+      <!-- ============================================ -->
+      <div class="sky-band"></div>
+      <span class="cloud c1">☁️</span>
+      <span class="cloud c2">⛅</span>
+      <span class="cloud c3">☁️</span>
+      <span class="cloud c4">🌤️</span>
+
+      <!-- ============================================ -->
+      <!--  LAYER 2: 河流 (左上)                      -->
+      <!-- ============================================ -->
+      <div class="river-body">
+        <div class="river-surface"></div>
+        <span class="river-rock r1">🪨</span>
+        <span class="river-rock r2">🪨</span>
+        <span class="river-rock r3">🪨</span>
+        <span class="river-reed rd1">🌿</span>
+        <span class="river-reed rd2">🌿</span>
+        <span class="river-reed rd3">🌿</span>
+        <span class="river-lily">🪷</span>
+      </div>
+
+      <!-- ============================================ -->
+      <!--  LAYER 3: 小路系统                          -->
+      <!-- ============================================ -->
+      <!-- 主路: 房屋 → 农田 (对角线) -->
+      <div class="path path-main"></div>
+      <!-- 分支: 房屋 → 牧场 -->
+      <div class="path path-ranch"></div>
+      <!-- 分支: 农田 → 花园 -->
+      <div class="path path-garden"></div>
+      <!-- 分支: 房屋 → 工坊 -->
+      <div class="path path-workshop"></div>
+      <!-- 分支: 河流 → 农田 -->
+      <div class="path path-river"></div>
+
+      <!-- ============================================ -->
+      <!--  LAYER 4: 🪭 工坊 (房屋上方)                -->
+      <!-- ============================================ -->
+      <div class="zone workshop-zone" :style="zonePos.workshop">
+        <div class="zone-bg workshop-bg"></div>
+        <span class="ws-building">🔨</span>
+        <span class="ws-bench">🪵</span>
+        <span class="ws-barrel">🪣</span>
+        <span class="ws-lantern">🏮</span>
+        <div class="zone-label">🔧 工坊</div>
+        <AreaLock v-if="!game.isWorkshopUnlocked" :required-level="8" />
+      </div>
+
+      <!-- ============================================ -->
+      <!--  LAYER 4: 🏠 房屋生活区 (中右)              -->
+      <!-- ============================================ -->
+      <div class="zone house-zone" :style="zonePos.house">
+        <div class="zone-bg house-bg"></div>
+        <!-- 主屋 -->
+        <div class="house-body">
+          <span class="house-roof">🔺</span>
+          <span class="house-wall">🧱</span>
+          <span class="house-door">🚪</span>
+          <span class="house-window">🪟</span>
+          <span class="house-window w2">🪟</span>
+          <span class="house-chimney">🏭</span>
+          <div class="house-smoke"></div>
+          <div class="house-smoke s2"></div>
         </div>
-        <div class="willow">🌿</div>
-        <div class="willow">🌿</div>
+        <!-- 生活区装饰 -->
+        <span class="h-mailbox">📮</span>
+        <span class="h-tree t1">🌳</span>
+        <span class="h-tree t2">🌲</span>
+        <span class="h-tree t3">🌳</span>
+        <span class="h-barrel b1">🪣</span>
+        <span class="h-barrel b2">🪣</span>
+        <span class="h-flower">🌻</span>
+        <span class="h-flower f2">🌸</span>
+        <span class="h-fence-seg">🪵</span>
+        <span class="h-fence-seg f2">🪵</span>
+        <span class="h-fence-seg f3">🪵</span>
+        <span class="h-fence-seg f4">🪵</span>
+        <span class="h-fence-seg f5">🪵</span>
+        <div class="zone-label">🏠 家园</div>
       </div>
 
-      <!-- 房屋区（右上） -->
-      <div class="house-area">
-        <div class="house-main">🏠</div>
-        <div class="house-smoke"></div>
-        <div class="house-tree">🌳</div>
-        <div class="house-tree sm">🌲</div>
-        <div class="fence-h">🪵</div><div class="fence-h">🪵</div><div class="fence-h">🪵</div>
-      </div>
-
-      <!-- 草丛和小花（随机散布） -->
-      <div class="grass-cluster" style="left: 20%; top: 35%">🌿</div>
-      <div class="grass-cluster" style="left: 45%; top: 20%">🌱</div>
-      <div class="grass-cluster" style="left: 60%; top: 65%">🌿</div>
-      <div class="grass-cluster" style="left: 15%; top: 70%">🌱</div>
-      <div class="grass-cluster" style="left: 80%; top: 40%">🌿</div>
-      <div class="grass-cluster" style="left: 35%; top: 85%">🌱</div>
-      <div class="grass-cluster" style="left: 70%; top: 90%">🌿</div>
-
-      <!-- 小花 -->
-      <div class="flower-decor" style="left: 25%; top: 50%">🌼</div>
-      <div class="flower-decor" style="left: 50%; top: 75%">🌸</div>
-      <div class="flower-decor" style="left: 72%; top: 55%">🌼</div>
-      <div class="flower-decor" style="left: 10%; top: 55%">🌸</div>
-      <div class="flower-decor" style="left: 85%; top: 70%">🌼</div>
-
-      <!-- 木桶 -->
-      <div class="barrel" style="left: 8%; top: 40%">🪣</div>
-      <div class="barrel" style="left: 88%; top: 85%">🪣</div>
-
-      <!-- 石头 -->
-      <div class="rock-decor" style="left: 5%; top: 75%">🪨</div>
-      <div class="rock-decor" style="left: 92%; top: 30%">🪨</div>
-      <div class="rock-decor" style="left: 40%; top: 95%">🪨</div>
-
-      <!-- 前景植物 -->
-      <div class="fg-plant" style="left: -1%; top: 60%">🌾</div>
-      <div class="fg-plant" style="left: 96%; top: 50%">🌾</div>
-      <div class="fg-plant" style="left: 30%; top: 98%">🌿</div>
-      <div class="fg-plant" style="left: 65%; top: 97%">🌿</div>
-    </div>
-
-    <!-- ===== 农田区域（左下） ===== -->
-    <div class="area farm-area" :style="{ left: farmPos.x + 'px', top: farmPos.y + 'px' }">
-      <div class="area-bg farm-grass"></div>
-      <!-- 4x4 农田 -->
-      <div class="farm-grid">
-        <div
-          v-for="(plot, idx) in game.farmPlots"
-          :key="plot.id"
-          class="plot-tile"
-          :class="plotClass(plot)"
-          @click="handlePlotClick(plot)"
-        >
-          <div class="plot-dirt">
-            <div class="plot-top"></div>
-          </div>
-          <div class="plot-crop">
-            <span v-if="plot.state === 'EMPTY'" class="plot-empty">➕</span>
-            <span v-else-if="plot.state === 'MATURE'" class="crop-mature">{{ getCropEmoji(plot) }}</span>
-            <span v-else-if="plot.state === 'WITHERED'" class="crop-wither">🥀</span>
-            <span v-else class="crop-growing">{{ getCropStageEmoji(plot) }}</span>
-          </div>
-          <div v-if="(plot.state === 'PLANTED' || plot.state === 'GROWING') && plot.waterCount === 0" class="water-need">💧</div>
-          <div v-if="plot.state === 'MATURE'" class="harvest-star">✨</div>
-        </div>
-      </div>
-      <div class="area-label farm-label">🌾 农场</div>
-      <!-- 栅栏围边 -->
-      <div class="farm-fence fence-top"></div>
-      <div class="farm-fence fence-left"></div>
-      <div class="farm-fence fence-right"></div>
-      <div class="farm-fence fence-bottom"></div>
-    </div>
-
-    <!-- ===== 花园区域（左中偏上） ===== -->
-    <div class="area garden-area" :style="{ left: gardenPos.x + 'px', top: gardenPos.y + 'px' }">
-      <div class="area-bg garden-grass"></div>
-      <div class="garden-shelf">
-        <div class="shelf-board">🪵</div>
-        <div class="shelf-pots">
+      <!-- ============================================ -->
+      <!--  LAYER 4: 🐄 牧场 (右侧)                    -->
+      <!-- ============================================ -->
+      <div class="zone ranch-zone" :style="zonePos.ranch">
+        <div class="zone-bg ranch-bg"></div>
+        <!-- 围栏边框 -->
+        <div class="ranch-fence-top"></div>
+        <div class="ranch-fence-bottom"></div>
+        <div class="ranch-fence-left"></div>
+        <div class="ranch-fence-right"></div>
+        <!-- 动物栏位 -->
+        <div class="ranch-grid">
           <div
-            v-for="pot in visibleGardenPots"
-            :key="pot.id"
-            class="shelf-pot"
-            :class="potClass(pot)"
-            @click="handlePotClick(pot)"
+            v-for="slot in ranchSlots"
+            :key="slot.id"
+            class="ranch-cell"
+            :class="ranchCellClass(slot)"
+            @click.stop="onSlotClick(slot)"
           >
-            <span v-if="!pot.flowerId" class="pot-empty">➕</span>
-            <span v-else-if="pot.state === 'BLOOM'" class="pot-bloom">{{ getFlowerEmoji(pot) }}</span>
-            <span v-else class="pot-growing">{{ getFlowerStageEmoji(pot) }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="area-label garden-label">🌷 花园</div>
-      <AreaLock v-if="!game.isGardenUnlocked" :required-level="5" />
-    </div>
-
-    <!-- ===== 温室（花园旁装饰，固定位置） ===== -->
-    <div class="area greenhouse-area" :style="{ left: greenhousePos.x + 'px', top: greenhousePos.y + 'px' }">
-      <div class="area-bg greenhouse-bg"></div>
-      <div class="greenhouse-glass">🏛️</div>
-      <div class="area-label greenhouse-label">🏛️ 温室</div>
-      <AreaLock v-if="game.level < 8" :required-level="8" />
-    </div>
-
-    <!-- ===== 牧场区域（右侧） ===== -->
-    <div class="area ranch-area" :style="{ left: ranchPos.x + 'px', top: ranchPos.y + 'px' }">
-      <div class="area-bg ranch-grass"></div>
-      <div class="ranch-grid">
-        <div
-          v-for="slot in game.ranchSlots"
-          :key="slot.id"
-          class="ranch-slot"
-          :class="slotClass(slot)"
-          @click="handleSlotClick(slot)"
-        >
-          <div class="ranch-fence"></div>
-          <div class="ranch-animal">
-            <span v-if="!slot.animalId" class="slot-empty">➕</span>
-            <span v-else class="animal-emoji" :class="{ 'animal-ready': slot.state === 'READY', 'animal-hungry': slot.state === 'HUNGRY' }">
-              {{ getAnimalEmoji(slot) }}
+            <span v-if="!slot.animalId" class="rc-empty">➕</span>
+            <span v-else class="rc-animal" :class="{ ready: slot.state === 'READY', hungry: slot.state === 'HUNGRY' }">
+              {{ animalEmoji(slot) }}
             </span>
+            <span v-if="slot.state === 'HUNGRY'" class="rc-tag tag-hungry">🍖</span>
+            <span v-if="slot.state === 'READY'" class="rc-tag tag-ready">✨</span>
           </div>
-          <div v-if="slot.state === 'HUNGRY'" class="status-tag hungry">🍖</div>
-          <div v-if="slot.state === 'READY'" class="status-tag ready">✨</div>
         </div>
+        <!-- 牧场装饰 -->
+        <span class="rn-hay">🌾</span>
+        <span class="rn-hay h2">🌾</span>
+        <span class="rn-trough">🪣</span>
+        <span class="rn-grass">🌿</span>
+        <span class="rn-grass g2">🌱</span>
+        <div class="zone-label ranch-lbl">🐄 牧场</div>
       </div>
-      <!-- 围栏装饰 -->
-      <div class="ranch-corner top-left">🪵</div>
-      <div class="ranch-corner top-right">🪵</div>
-      <div class="ranch-corner bottom-left">🪵</div>
-      <div class="ranch-corner bottom-right">🪵</div>
-      <div class="area-label ranch-label">🐄 牧场</div>
-    </div>
 
-    <!-- ===== 鱼塘（右下装饰区域） ===== -->
-    <div class="area pond-area" :style="{ left: pondPos.x + 'px', top: pondPos.y + 'px' }">
-      <div class="pond-water">🐟</div>
-      <div class="pond-ripple"></div>
-      <div class="pond-reeds">🌾</div>
-      <div class="area-label pond-label">🐟 鱼塘</div>
-      <AreaLock v-if="game.level < 10" :required-level="10" />
-    </div>
+      <!-- ============================================ -->
+      <!--  LAYER 4: 🌷 花园 (农田与房屋之间)         -->
+      <!-- ============================================ -->
+      <div class="zone garden-zone" :style="zonePos.garden">
+        <div class="zone-bg garden-bg"></div>
+        <div class="garden-shelf">
+          <span class="gs-board">🪵</span>
+          <div class="gs-pots">
+            <div
+              v-for="pot in gardenPots"
+              :key="pot.id"
+              class="gs-pot"
+              :class="potClass(pot)"
+              @click.stop="onPotClick(pot)"
+            >
+              <span v-if="!pot.flowerId" class="gp-empty">➕</span>
+              <span v-else-if="pot.state === 'BLOOM'" class="gp-bloom">{{ flowerEmoji(pot) }}</span>
+              <span v-else class="gp-growing">{{ flowerStageEmoji(pot) }}</span>
+            </div>
+          </div>
+        </div>
+        <span class="gd-flower">🌼</span>
+        <span class="gd-flower f2">🌸</span>
+        <span class="gd-butterfly">🦋</span>
+        <div class="zone-label">🌷 花园</div>
+        <AreaLock v-if="!game.isGardenUnlocked" :required-level="5" />
+      </div>
 
-    <!-- ===== 地图坐标指示 ===== -->
-    <div class="map-hint">
-      <span v-if="isDragging">✋ 拖动中</span>
-      <span v-else>✋ 拖动探索</span>
+      <!-- ============================================ -->
+      <!--  LAYER 4: 🌾 农田 (左下·视觉核心)            -->
+      <!-- ============================================ -->
+      <div class="zone farm-zone" :style="zonePos.farm">
+        <div class="zone-bg farm-bg"></div>
+        <!-- 栅栏围边 -->
+        <div class="farm-fence-rail top"></div>
+        <div class="farm-fence-rail bottom"></div>
+        <div class="farm-fence-rail left"></div>
+        <div class="farm-fence-rail right"></div>
+        <span class="farm-fence-post p1">🪵</span>
+        <span class="farm-fence-post p2">🪵</span>
+        <span class="farm-fence-post p3">🪵</span>
+        <span class="farm-fence-post p4">🪵</span>
+        <!-- 4×4 地块网格 -->
+        <div class="farm-grid">
+          <div
+            v-for="tile in farmTiles"
+            :key="tile.id"
+            class="farm-tile"
+            :class="tileClass(tile)"
+            @click.stop="onTileClick(tile)"
+          >
+            <!-- 泥土 -->
+            <div class="ft-dirt">
+              <div class="ft-dirt-top"></div>
+              <div class="ft-ridges"></div>
+            </div>
+            <!-- 作物 -->
+            <div class="ft-crop">
+              <span v-if="tile.state === 'EMPTY' && !tile.locked" class="ftc-empty">➕</span>
+              <span v-else-if="tile.state === 'MATURE'" class="ftc-mature">{{ cropEmoji(tile) }}</span>
+              <span v-else-if="tile.state === 'WITHERED'" class="ftc-wither">🥀</span>
+              <span v-else-if="!tile.locked" class="ftc-growing">{{ cropStageEmoji(tile) }}</span>
+            </div>
+            <!-- 缺水提示 -->
+            <span v-if="isThirsty(tile)" class="ft-tag water">💧</span>
+            <span v-if="tile.state === 'MATURE'" class="ft-tag harvest">✨</span>
+            <!-- 锁定 -->
+            <div v-if="tile.locked" class="ft-lock">
+              <span>🔒</span>
+            </div>
+          </div>
+        </div>
+        <!-- 农田装饰 -->
+        <span class="fm-decor scarecrow">🎋</span>
+        <span class="fm-decor bucket">🪣</span>
+        <span class="fm-decor basket">🧺</span>
+        <div class="zone-label farm-lbl">🌾 农田</div>
+      </div>
+
+      <!-- ============================================ -->
+      <!--  LAYER 4: 🏛️ 温室 (花园旁)                  -->
+      <!-- ============================================ -->
+      <div class="zone greenhouse-zone" :style="zonePos.greenhouse">
+        <div class="zone-bg gh-bg"></div>
+        <span class="gh-building">🏛️</span>
+        <span class="gh-flower">🌺</span>
+        <span class="gh-flower f2">🌷</span>
+        <div class="zone-label">🏛️ 温室</div>
+        <AreaLock v-if="game.level < 8" :required-level="8" />
+      </div>
+
+      <!-- ============================================ -->
+      <!--  LAYER 4: 🐟 鱼塘 (右下角)                  -->
+      <!-- ============================================ -->
+      <div class="zone pond-zone" :style="zonePos.pond">
+        <div class="pond-water-bg">
+          <span class="pw-fish">🐟</span>
+          <div class="pw-ripple"></div>
+        </div>
+        <span class="pd-reed">🌾</span>
+        <span class="pd-reed r2">🌾</span>
+        <span class="pd-rock">🪨</span>
+        <div class="zone-label">🐟 鱼塘</div>
+        <AreaLock v-if="game.level < 10" :required-level="10" />
+      </div>
+
+      <!-- ============================================ -->
+      <!--  LAYER 5: 世界装饰 (高密度散布)             -->
+      <!-- ============================================ -->
+      <!-- 大树 (地图边缘) -->
+      <span v-for="t in bigTrees" :key="'t'+t.i" class="decor tree" :style="pos(t)">{{ t.e }}</span>
+      <!-- 草丛 -->
+      <span v-for="g in grasses" :key="'g'+g.i" class="decor grass" :style="pos(g)">{{ g.e }}</span>
+      <!-- 小花 -->
+      <span v-for="f in flowers" :key="'f'+f.i" class="decor flower" :style="pos(f)">{{ f.e }}</span>
+      <!-- 石头 -->
+      <span v-for="r in rocks" :key="'r'+r.i" class="decor rock" :style="pos(r)">{{ r.e }}</span>
+      <!-- 灌木 -->
+      <span v-for="b in bushes" :key="'b'+b.i" class="decor bush" :style="pos(b)">{{ b.e }}</span>
+      <!-- 稻草堆 -->
+      <span v-for="h in hays" :key="'h'+h.i" class="decor hay" :style="pos(h)">{{ h.e }}</span>
+      <!-- 木桩 -->
+      <span v-for="s in stumps" :key="'s'+s.i" class="decor stump" :style="pos(s)">{{ s.e }}</span>
     </div>
   </div>
 </template>
@@ -198,654 +280,749 @@ import type { AnimalSlotData } from '@/systems/animal/state'
 import type { FlowerPotData } from '@/systems/garden/state'
 import AreaLock from './AreaLock.vue'
 
+// ================================================================
+//  WORLD CONSTANTS
+// ================================================================
+const WORLD_W = 2000
+const WORLD_H = 1400
+
+// 各区域锚点
+const zonePos = {
+  farm:      { left: '80px', top: '820px', width: '500px', height: '480px' },
+  house:     { left: '1000px', top: '420px', width: '480px', height: '460px' },
+  ranch:     { left: '1380px', top: '820px', width: '440px', height: '420px' },
+  garden:    { left: '500px', top: '890px', width: '280px', height: '210px' },
+  workshop:  { left: '900px', top: '200px', width: '280px', height: '210px' },
+  greenhouse:{ left: '720px', top: '790px', width: '160px', height: '130px' },
+  pond:      { left: '1700px', top: '1100px', width: '180px', height: '130px' },
+}
+
+// 区域中心 (用于镜头移动)
+const zoneCenters: Record<string, { x: number; y: number }> = {
+  farm:      { x: 330, y: 1060 },
+  house:     { x: 1240, y: 650 },
+  ranch:     { x: 1600, y: 1030 },
+  garden:    { x: 640, y: 995 },
+  workshop:  { x: 1040, y: 305 },
+  river:     { x: 280, y: 180 },
+  pond:      { x: 1790, y: 1165 },
+}
+
+// ================================================================
+//  STORE
+// ================================================================
 const game = useGameStore()
 
-// ===== 拖动状态 =====
-const mapRef = ref<HTMLElement>()
-const pos = ref({ x: -120, y: -60 }) // 初始偏移：让农场在左下可见
+// ================================================================
+//  DRAG SYSTEM
+// ================================================================
+const viewportRef = ref<HTMLElement>()
+const pan = ref({ x: -260, y: -120 })
 const scale = ref(1)
-const isDragging = ref(false)
-const dragStart = ref({ x: 0, y: 0 })
-const lastPos = ref({ x: 0, y: 0 })
+let dragging = false
+let dragOrigin = { x: 0, y: 0 }
+let panOrigin = { x: 0, y: 0 }
+let moved = false
 
-const mapStyle = computed(() => ({
-  transform: `translate(${pos.value.x}px, ${pos.value.y}px) scale(${scale.value})`,
-  transformOrigin: 'center center',
-  cursor: isDragging.value ? 'grabbing' : 'grab',
+const canvasStyle = computed(() => ({
+  transform: `translate3d(${pan.value.x}px, ${pan.value.y}px, 0) scale(${scale.value})`,
+  cursor: dragging ? 'grabbing' : 'grab',
 }))
 
-function onPointerDown(e: PointerEvent) {
-  isDragging.value = true
-  dragStart.value = { x: e.clientX, y: e.clientY }
-  lastPos.value = { ...pos.value }
+function clampPan() {
+  const el = viewportRef.value
+  if (!el) return
+  const vw = el.clientWidth / scale.value
+  const vh = el.clientHeight / scale.value
+  pan.value.x = Math.max(-(WORLD_W - vw), Math.min(0, pan.value.x))
+  pan.value.y = Math.max(-(WORLD_H - vh), Math.min(0, pan.value.y))
+}
+
+function onDown(e: PointerEvent) {
+  dragging = true
+  moved = false
+  dragOrigin = { x: e.clientX, y: e.clientY }
+  panOrigin = { ...pan.value }
   ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
 }
 
-function onPointerMove(e: PointerEvent) {
-  if (!isDragging.value) return
-  const dx = e.clientX - dragStart.value.x
-  const dy = e.clientY - dragStart.value.y
-  pos.value = {
-    x: lastPos.value.x + dx,
-    y: lastPos.value.y + dy,
-  }
+function onMove(e: PointerEvent) {
+  if (!dragging) return
+  const dx = e.clientX - dragOrigin.x
+  const dy = e.clientY - dragOrigin.y
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true
+  pan.value.x = panOrigin.x + dx
+  pan.value.y = panOrigin.y + dy
+  clampPan()
 }
 
-function onPointerUp() {
-  isDragging.value = false
+function onUp() {
+  dragging = false
 }
 
 function onWheel(e: WheelEvent) {
-  const delta = e.deltaY > 0 ? -0.05 : 0.05
-  scale.value = Math.min(Math.max(0.5, scale.value + delta), 1.5)
+  scale.value = Math.max(0.4, Math.min(1.6, scale.value + (e.deltaY > 0 ? -0.06 : 0.06)))
+  clampPan()
 }
 
-// ===== 世界尺寸 =====
-const WORLD_W = 960
-const WORLD_H = 720
+// ================================================================
+//  CAMERA PAN (region navigation)
+// ================================================================
+let animFrame = 0
+function panTo(zoneKey: string) {
+  const el = viewportRef.value
+  if (!el) return
+  const center = zoneCenters[zoneKey]
+  if (!center) return
 
-// ===== 区域固定坐标 =====
-const farmPos = { x: 20, y: 480 }
-const gardenPos = { x: 20, y: 240 }
-const greenhousePos = { x: 280, y: 120 }
-const ranchPos = { x: 560, y: 320 }
-const pondPos = { x: 620, y: 540 }
-
-// ===== 可见花盆（最多显示6个） =====
-const visibleGardenPots = computed(() => game.gardenPots.slice(0, 6))
-
-// ===== 作物辅助 =====
-function getCropEmoji(plot: CropPlotData): string {
-  return CROP_CONFIGS[plot.cropId as CropId]?.emoji ?? '🌱'
-}
-
-function getCropStageEmoji(plot: CropPlotData): string {
-  const config = CROP_CONFIGS[plot.cropId as CropId]
-  if (!config) return '🌱'
-  const idx = Math.min(Math.floor(plot.growthProgress * config.stages.length), config.stages.length - 1)
-  return config.stages[idx]
-}
-
-function getAnimalEmoji(slot: AnimalSlotData): string {
-  return ANIMAL_CONFIGS[slot.animalId as AnimalId]?.emoji ?? '🐄'
-}
-
-function getFlowerEmoji(pot: FlowerPotData): string {
-  return FLOWER_CONFIGS[pot.flowerId as FlowerId]?.emoji ?? '🌷'
-}
-
-function getFlowerStageEmoji(pot: FlowerPotData): string {
-  const config = FLOWER_CONFIGS[pot.flowerId as FlowerId]
-  if (!config) return '🌱'
-  const idx = Math.min(Math.floor(pot.growthProgress * config.stages.length), config.stages.length - 1)
-  return config.stages[idx]
-}
-
-// ===== 样式类 =====
-function plotClass(plot: CropPlotData) {
-  return {
-    'plot-empty': plot.state === 'EMPTY',
-    'plot-growing': plot.state === 'PLANTED' || plot.state === 'GROWING',
-    'plot-mature': plot.state === 'MATURE',
-    'plot-withered': plot.state === 'WITHERED',
-    'thirsty': (plot.state === 'PLANTED' || plot.state === 'GROWING') && plot.waterCount === 0,
+  const vw = el.clientWidth / scale.value
+  const vh = el.clientHeight / scale.value
+  const tx = -(center.x - vw / 2)
+  const ty = -(center.y - vh / 2)
+  const from = { x: pan.value.x, y: pan.value.y }
+  const to = {
+    x: Math.max(-(WORLD_W - vw), Math.min(0, tx)),
+    y: Math.max(-(WORLD_H - vh), Math.min(0, ty)),
   }
-}
 
-function potClass(pot: FlowerPotData) {
-  return {
-    'pot-empty': !pot.flowerId,
-    'pot-growing': pot.state === 'SEED' || pot.state === 'GROWING',
-    'pot-bloom': pot.state === 'BLOOM',
+  cancelAnimationFrame(animFrame)
+  const start = performance.now()
+  const dur = 500
+  function step(now: number) {
+    const t = Math.min(1, (now - start) / dur)
+    const ease = 1 - Math.pow(1 - t, 3) // ease-out
+    pan.value.x = from.x + (to.x - from.x) * ease
+    pan.value.y = from.y + (to.y - from.y) * ease
+    if (t < 1) animFrame = requestAnimationFrame(step)
   }
+  animFrame = requestAnimationFrame(step)
 }
 
-function slotClass(slot: AnimalSlotData) {
-  return {
-    'slot-empty': !slot.animalId,
-    'slot-hungry': slot.state === 'HUNGRY',
-    'slot-ready': slot.state === 'READY',
-  }
+defineExpose({ panTo, scale })
+
+// ================================================================
+//  FARM TILES (4×4 = 16, locked beyond unlocked count)
+// ================================================================
+interface FarmTileDisplay {
+  id: string
+  locked: boolean
+  unlockLevel?: number
+  state?: string
+  cropId?: string
+  waterCount?: number
+  growthProgress?: number
 }
 
-// ===== 点击处理 =====
-function handlePlotClick(plot: CropPlotData) {
-  if (plot.state === 'MATURE') {
-    game.harvestPlot(plot.id)
-  } else if (plot.state === 'PLANTED' || plot.state === 'GROWING') {
-    if (plot.waterCount === 0) {
-      game.waterPlot(plot.id)
+const farmTiles = computed<FarmTileDisplay[]>(() => {
+  const tiles: FarmTileDisplay[] = []
+  const n = game.farmPlots.length
+  for (let i = 0; i < 16; i++) {
+    if (i < n) {
+      tiles.push({ id: game.farmPlots[i].id, locked: false, ...game.farmPlots[i] })
+    } else {
+      tiles.push({ id: `farm-locked-${i}`, locked: true })
     }
-  } else if (plot.state === 'EMPTY') {
-    // 自动种第一颗可种的
+  }
+  return tiles
+})
+
+// ================================================================
+//  RANCH SLOTS (3×3 = 9)
+// ================================================================
+const ranchSlots = computed(() => {
+  const slots: (AnimalSlotData & { locked?: boolean })[] = []
+  const n = game.ranchSlots.length
+  for (let i = 0; i < 9; i++) {
+    if (i < n) {
+      slots.push({ ...game.ranchSlots[i], locked: false })
+    } else {
+      slots.push({ id: `ranch-locked-${i}`, locked: true, animalId: '' as any, state: 'HUNGRY' as any, feedCount: 0, produceTimer: 0 })
+    }
+  }
+  return slots
+})
+
+// ================================================================
+//  GARDEN POTS (6 visible)
+// ================================================================
+const gardenPots = computed(() => game.gardenPots.slice(0, 6))
+
+// ================================================================
+//  EMOJI HELPERS
+// ================================================================
+function cropEmoji(t: FarmTileDisplay) {
+  return CROP_CONFIGS[t.cropId as CropId]?.emoji ?? '🌱'
+}
+function cropStageEmoji(t: FarmTileDisplay) {
+  const c = CROP_CONFIGS[t.cropId as CropId]
+  if (!c) return '🌱'
+  const i = Math.min(Math.floor((t.growthProgress ?? 0) * c.stages.length), c.stages.length - 1)
+  return c.stages[i]
+}
+function animalEmoji(s: AnimalSlotData) {
+  return ANIMAL_CONFIGS[s.animalId as AnimalId]?.emoji ?? '🐄'
+}
+function flowerEmoji(p: FlowerPotData) {
+  return FLOWER_CONFIGS[p.flowerId as FlowerId]?.emoji ?? '🌷'
+}
+function flowerStageEmoji(p: FlowerPotData) {
+  const c = FLOWER_CONFIGS[p.flowerId as FlowerId]
+  if (!c) return '🌱'
+  const i = Math.min(Math.floor(p.growthProgress * c.stages.length), c.stages.length - 1)
+  return c.stages[i]
+}
+
+// ================================================================
+//  STYLE HELPERS
+// ================================================================
+function isThirsty(t: FarmTileDisplay) {
+  return !t.locked && (t.state === 'PLANTED' || t.state === 'GROWING') && (t.waterCount ?? 1) === 0
+}
+function tileClass(t: FarmTileDisplay) {
+  return {
+    locked: t.locked,
+    empty: t.state === 'EMPTY',
+    growing: t.state === 'PLANTED' || t.state === 'GROWING',
+    mature: t.state === 'MATURE',
+    withered: t.state === 'WITHERED',
+    thirsty: isThirsty(t),
+  }
+}
+function ranchCellClass(s: AnimalSlotData & { locked?: boolean }) {
+  return {
+    'rc-locked': s.locked,
+    'rc-empty': !s.animalId && !s.locked,
+    'rc-hungry': s.state === 'HUNGRY',
+    'rc-ready': s.state === 'READY',
+  }
+}
+function potClass(p: FlowerPotData) {
+  return {
+    'gp-empty': !p.flowerId,
+    'gp-growing': p.state === 'SEED' || p.state === 'GROWING',
+    'gp-bloom': p.state === 'BLOOM',
+  }
+}
+
+// ================================================================
+//  CLICK HANDLERS
+// ================================================================
+function onTileClick(tile: FarmTileDisplay) {
+  if (moved || tile.locked) return
+  if (tile.state === 'MATURE') {
+    game.harvestPlot(tile.id)
+  } else if (tile.state === 'PLANTED' || tile.state === 'GROWING') {
+    if ((tile.waterCount ?? 1) === 0) game.waterPlot(tile.id)
+  } else if (tile.state === 'EMPTY') {
     const first = Object.values(CROP_CONFIGS).find(c => c.unlockLevel <= game.level)
-    if (first) game.plantCrop(plot.id, first.id as CropId)
+    if (first) game.plantCrop(tile.id, first.id as CropId)
   }
 }
 
-function handlePotClick(pot: FlowerPotData) {
-  if (pot.state === 'BLOOM') {
-    game.pickFlowerPot(pot.id)
-  } else if (pot.state === 'SEED' || pot.state === 'GROWING') {
-    game.waterFlowerPot(pot.id)
-  }
-}
-
-function handleSlotClick(slot: AnimalSlotData) {
+function onSlotClick(slot: AnimalSlotData & { locked?: boolean }) {
+  if (moved || slot.locked) return
   if (slot.state === 'HUNGRY') {
     game.feedAnimalSlot(slot.id)
   } else if (slot.state === 'READY') {
     game.collectAnimalProduct(slot.id)
   }
 }
-</script>
 
-<style lang="scss" scoped>
-@use '@/styles/variables' as *;
-
-// ===== 世界地图容器 =====
-.world-map {
-  position: absolute;
-  inset: 0;
-  width: 960px;
-  height: 720px;
-  background:
-    radial-gradient(ellipse at 40% 30%, rgba(255,255,200,0.08) 0%, transparent 50%),
-    linear-gradient(180deg, #b5e8a0 0%, $world-grass-light 15%, $world-grass-mid 40%, $world-grass-dark 100%);
-  overflow: hidden;
-  touch-action: none;
-  user-select: none;
-  transition: none;
+function onPotClick(pot: FlowerPotData) {
+  if (moved) return
+  if (pot.state === 'BLOOM') game.pickFlowerPot(pot.id)
 }
 
-// ===== 背景层 =====
-.world-bg {
+// ================================================================
+//  DECORATION DATA (high density, positioned manually)
+// ================================================================
+interface Deco { i: number; x: number; y: number; e: string; s: number }
+
+const bigTrees: Deco[] = [
+  { i:1, x:20, y:60, e:'🌳', s:52 }, { i:2, x:1880, y:50, e:'🌲', s:48 },
+  { i:3, x:1920, y:600, e:'🌳', s:52 }, { i:4, x:1900, y:1200, e:'🌲', s:48 },
+  { i:5, x:30, y:1260, e:'🌳', s:52 }, { i:6, x:1880, y:850, e:'🌳', s:50 },
+  { i:7, x:40, y:700, e:'🌲', s:44 }, { i:8, x:1440, y:60, e:'🌳', s:46 },
+]
+
+const grasses: Deco[] = [
+  { i:1, x:200, y:580, e:'🌿', s:20 }, { i:2, x:350, y:650, e:'🌱', s:18 },
+  { i:3, x:180, y:750, e:'🌿', s:20 }, { i:4, x:620, y:700, e:'🌱', s:18 },
+  { i:5, x:850, y:720, e:'🌿', s:22 }, { i:6, x:1100, y:900, e:'🌱', s:18 },
+  { i:7, x:1300, y:760, e:'🌿', s:20 }, { i:8, x:1550, y:680, e:'🌱', s:18 },
+  { i:9, x:1720, y:780, e:'🌿', s:20 }, { i:10, x:400, y:560, e:'🌱', s:16 },
+  { i:11, x:700, y:620, e:'🌿', s:20 }, { i:12, x:950, y:560, e:'🌱', s:18 },
+  { i:13, x:1200, y:380, e:'🌿', s:20 }, { i:14, x:1450, y:500, e:'🌱', s:18 },
+  { i:15, x:1650, y:600, e:'🌿', s:20 }, { i:16, x:500, y:500, e:'🌱', s:16 },
+  { i:17, x:780, y:500, e:'🌿', s:18 }, { i:18, x:300, y:450, e:'🌱', s:16 },
+  { i:19, x:600, y:1100, e:'🌿', s:20 }, { i:20, x:1000, y:1100, e:'🌱', s:18 },
+  { i:21, x:1600, y:1100, e:'🌿', s:20 }, { i:22, x:150, y:1050, e:'🌱', s:16 },
+  { i:23, x:750, y:1080, e:'🌿', s:20 }, { i:24, x:1200, y:1180, e:'🌱', s:18 },
+  { i:25, x:1750, y:1000, e:'🌿', s:20 },
+]
+
+const flowers: Deco[] = [
+  { i:1, x:420, y:720, e:'🌸', s:16 }, { i:2, x:650, y:680, e:'🌼', s:15 },
+  { i:3, x:550, y:780, e:'🌺', s:16 }, { i:4, x:780, y:850, e:'🌸', s:14 },
+  { i:5, x:920, y:800, e:'🌼', s:15 }, { i:6, x:1060, y:920, e:'🌻', s:16 },
+  { i:7, x:680, y:950, e:'🌸', s:14 }, { i:8, x:1120, y:700, e:'🌺', s:15 },
+  { i:9, x:1260, y:820, e:'🌼', s:14 }, { i:10, x:380, y:600, e:'🌸', s:15 },
+  { i:11, x:860, y:450, e:'🌼', s:14 }, { i:12, x:1050, y:360, e:'🌸', s:15 },
+  { i:13, x:280, y:820, e:'🌺', s:14 }, { i:14, x:1580, y:780, e:'🌸', s:14 },
+  { i:15, x:1700, y:950, e:'🌼', s:15 },
+]
+
+const rocks: Deco[] = [
+  { i:1, x:220, y:280, e:'🪨', s:28 }, { i:2, x:180, y:450, e:'🪨', s:22 },
+  { i:3, x:320, y:350, e:'🪨', s:20 }, { i:4, x:1300, y:280, e:'🪨', s:24 },
+  { i:5, x:1600, y:420, e:'🪨', s:22 }, { i:6, x:440, y:430, e:'🪨', s:20 },
+  { i:7, x:820, y:320, e:'🪨', s:18 }, { i:8, x:1750, y:700, e:'🪨', s:24 },
+  { i:9, x:50, y:950, e:'🪨', s:22 }, { i:10, x:1650, y:1260, e:'🪨', s:22 },
+]
+
+const bushes: Deco[] = [
+  { i:1, x:150, y:500, e:'🪴', s:28 }, { i:2, x:600, y:550, e:'🪴', s:26 },
+  { i:3, x:1150, y:500, e:'🪴', s:28 }, { i:4, x:1500, y:550, e:'🪴', s:26 },
+  { i:5, x:850, y:650, e:'🪴', s:24 }, { i:6, x:450, y:900, e:'🪴', s:24 },
+  { i:7, x:1350, y:700, e:'🪴', s:26 }, { i:8, x:300, y:550, e:'🪴', s:24 },
+]
+
+const hays: Deco[] = [
+  { i:1, x:1360, y:880, e:'🌾', s:24 }, { i:2, x:1480, y:920, e:'🌾', s:22 },
+  { i:3, x:1600, y:880, e:'🌾', s:24 }, { i:4, x:440, y:880, e:'🌾', s:22 },
+]
+
+const stumps: Deco[] = [
+  { i:1, x:700, y:580, e:'🪵', s:24 }, { i:2, x:960, y:680, e:'🪵', s:22 },
+  { i:3, x:1400, y:700, e:'🪵', s:24 }, { i:4, x:520, y:550, e:'🪵', s:22 },
+]
+
+function pos(d: Deco) {
+  return {
+    position: 'absolute',
+    left: d.x + 'px',
+    top: d.y + 'px',
+    fontSize: d.s + 'px',
+  } as any
+}
+</script>
+
+<!-- ================================================================ -->
+<!--  STYLES                                                          -->
+<!-- ================================================================ -->
+<style lang="scss" scoped>
+@use '@/styles/variables' as v;
+
+// ── Viewport ──
+.world-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, #c8e8b0 0%, #8dc850 30%, #5ea832 70%, #4a8820 100%);
+  touch-action: none;
+  user-select: none;
+}
+
+// ── Foreground plants (sticky to viewport) ──
+.viewport-fg {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 200;
+}
+.fg-plant {
+  position: absolute;
+  font-size: 40px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+  animation: fgSway 5s ease-in-out infinite;
+}
+.fgl { bottom: -5px; left: -5px; }
+.fgl2 { bottom: 8px; left: 20px; font-size: 32px; animation-delay: -2s; }
+.fgr { bottom: -5px; right: -5px; }
+.fgr2 { bottom: 8px; right: 20px; font-size: 32px; animation-delay: -2.5s; }
+.fgc { bottom: -8px; left: 50%; font-size: 24px; animation-delay: -4s; }
+@keyframes fgSway {
+  0%,100% { transform: rotate(-2deg); }
+  50% { transform: rotate(3deg); }
 }
 
-.sky-layer {
+// ── World Canvas ──
+.world-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 2000px;
+  height: 1400px;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+// ── Sky ──
+.sky-band {
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 40%;
-  background: linear-gradient(180deg, rgba(180,220,255,0.2) 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+  height: 160px;
+  background: linear-gradient(180deg, rgba(180,220,255,0.45) 0%, rgba(200,230,200,0.2) 50%, transparent 100%);
 }
-
-.cloud { position: absolute; font-size: 28px; opacity: 0.65; animation: cloudFloat linear infinite; }
-.cloud-1 { top: 5%; left: 15%; animation-duration: 28s; }
-.cloud-2 { top: 10%; left: 55%; font-size: 22px; animation-duration: 36s; animation-delay: -10s; }
-.cloud-3 { top: 3%; left: 78%; font-size: 20px; animation-duration: 32s; animation-delay: -20s; }
-
-@keyframes cloudFloat {
+.cloud { position: absolute; font-size: 30px; opacity: 0.7; animation: cloudDrift linear infinite; pointer-events: none; }
+.c1 { top: 30px; left: 10%; animation-duration: 40s; }
+.c2 { top: 50px; left: 40%; font-size: 24px; animation-duration: 34s; animation-delay: -14s; }
+.c3 { top: 20px; left: 65%; font-size: 28px; animation-duration: 38s; animation-delay: -8s; }
+.c4 { top: 40px; left: 82%; font-size: 22px; animation-duration: 44s; animation-delay: -22s; }
+@keyframes cloudDrift {
   0% { transform: translateX(0); }
-  50% { transform: translateX(25px); }
+  50% { transform: translateX(40px); }
   100% { transform: translateX(0); }
 }
 
-// 小路
-.path-main {
+// ── River ──
+.river-body {
   position: absolute;
-  bottom: 0; left: 35%;
-  width: 30%;
-  height: 75%;
-  background: $world-path;
-  clip-path: polygon(35% 0%, 65% 0%, 80% 100%, 20% 100%);
-  opacity: 0.6;
-
+  top: 10px; left: 40px;
+  width: 480px; height: 300px;
+}
+.river-surface {
+  width: 100%; height: 100%;
+  background: linear-gradient(180deg, #7ec8f0 0%, #4aa8d8 60%, #3a8fc8 100%);
+  border-radius: 0 60% 60% 40% / 0 50% 60% 50%;
+  box-shadow: inset 0 2px 12px rgba(255,255,255,0.2), 0 4px 12px rgba(0,0,0,0.1);
   &::after {
     content: '';
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(
-      90deg,
-      transparent 0px,
-      transparent 18px,
-      rgba(0,0,0,0.05) 18px,
-      rgba(0,0,0,0.05) 22px
-    );
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(255,255,255,0.06) 10px, rgba(255,255,255,0.06) 12px);
+    animation: riverFlow 4s linear infinite;
+    border-radius: inherit;
   }
 }
+@keyframes riverFlow { from { background-position: 0 0; } to { background-position: 0 24px; } }
+.river-rock { position: absolute; font-size: 24px; }
+.r1 { top: 60%; left: 20%; }
+.r2 { top: 72%; left: 55%; }
+.r3 { top: 45%; left: 70%; }
+.river-reed { position: absolute; font-size: 26px; animation: sway 5s ease-in-out infinite; }
+.rd1 { top: 5%; left: 60%; }
+.rd2 { top: 10%; left: 75%; }
+.rd3 { bottom: 5%; left: 35%; }
+.river-lily { position: absolute; bottom: 15%; left: 42%; font-size: 22px; animation: floatUp 4s ease-in-out infinite; }
+@keyframes floatUp { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 
-.path-branch-1 {
+// ── Paths ──
+.path { position: absolute; background: linear-gradient(180deg, #d4b896 0%, #b89870 100%); border-radius: 22px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.1); &::after { content: ''; position: absolute; inset: 3px; border-radius: 19px; background: repeating-linear-gradient(90deg, transparent, transparent 14px, rgba(255,255,255,0.07) 14px, rgba(255,255,255,0.07) 16px); } }
+.path-main {
+  top: 730px; left: 620px;
+  width: 100px; height: 340px;
+  transform: rotate(-38deg);
+  transform-origin: center top;
+}
+.path-ranch {
+  top: 880px; left: 1100px;
+  width: 340px; height: 72px;
+}
+.path-garden {
+  top: 940px; left: 320px;
+  width: 260px; height: 56px;
+  transform: rotate(12deg);
+}
+.path-workshop {
+  top: 440px; left: 1020px;
+  width: 56px; height: 140px;
+  transform: rotate(25deg);
+}
+.path-river {
+  top: 420px; left: 280px;
+  width: 56px; height: 320px;
+}
+
+// ── Zones ──
+.zone {
   position: absolute;
-  top: 50%; left: 32%;
-  width: 15%;
-  height: 10%;
-  background: $world-path;
-  clip-path: polygon(0% 30%, 100% 0%, 100% 100%, 0% 70%);
-  opacity: 0.5;
+  z-index: 10;
 }
-
-.path-branch-2 {
+.zone-bg {
+  position: absolute; inset: 0;
+  border-radius: 16px;
+  border: 2px solid rgba(139, 105, 20, 0.18);
+}
+.zone-label {
   position: absolute;
-  top: 70%; right: 20%;
-  width: 12%;
-  height: 8%;
-  background: $world-path;
-  clip-path: polygon(30% 0%, 100% 0%, 70% 100%, 0% 100%);
-  opacity: 0.45;
-}
-
-// 河流
-.river {
-  position: absolute;
-  top: 0; left: 0;
-  width: 28%;
-  height: 55%;
-  background: linear-gradient(180deg, $world-water 0%, rgba(91,184,245,0.6) 100%);
-  clip-path: polygon(40% 0%, 80% 0%, 100% 50%, 80% 100%, 40% 100%, 0% 50%);
-  opacity: 0.5;
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent 0px,
-      transparent 8px,
-      rgba(255,255,255,0.1) 8px,
-      rgba(255,255,255,0.1) 12px
-    );
-    animation: riverFlow 3s linear infinite;
-  }
-}
-
-@keyframes riverFlow {
-  from { background-position: 0 0; }
-  to { background-position: 0 24px; }
-}
-
-// ===== 装饰层 =====
-.world-decor { position: absolute; inset: 0; pointer-events: none; }
-
-// 河流区
-.river-area { position: absolute; top: 0; left: 0; width: 25%; height: 50%; }
-.river-water { position: absolute; top: 20%; left: 35%; font-size: 20px; animation: ripple 2s ease-in-out infinite; }
-.river-water.ripple { top: 35%; left: 55%; animation-delay: -1s; }
-@keyframes ripple { 0%, 100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.3); opacity: 0.3; } }
-.rocks { position: absolute; top: 60%; left: 10%; display: flex; gap: 10px; }
-.rock { font-size: 18px; }
-.willow { position: absolute; font-size: 26px; top: 5%; left: 5%; animation: sway 4s ease-in-out infinite; }
-
-// 房屋区
-.house-area { position: absolute; top: 8%; right: 12%; }
-.house-main { font-size: 60px; filter: drop-shadow(3px 5px 4px rgba(0,0,0,0.2)); animation: sway 5s ease-in-out infinite; }
-.house-smoke {
-  position: absolute; top: -10px; right: 15px;
-  width: 20px; height: 30px;
-  background: rgba(200,200,200,0.4);
-  border-radius: 50%;
-  animation: smoke 3s ease-out infinite;
-}
-@keyframes smoke {
-  0% { opacity: 0.6; transform: translateY(0) scale(1); }
-  100% { opacity: 0; transform: translateY(-30px) scale(1.5); }
-}
-.house-tree { position: absolute; font-size: 44px; filter: drop-shadow(2px 3px 2px rgba(0,0,0,0.2)); }
-.house-tree.sm { font-size: 34px; top: 20px; right: -20px; }
-.house-tree:not(.sm) { top: 30px; right: -10px; }
-.fence-h { position: absolute; font-size: 16px; }
-
-// 草丛
-.grass-cluster {
-  position: absolute;
-  font-size: 18px;
-  animation: sway 3.5s ease-in-out infinite;
-}
-
-// 小花
-.flower-decor {
-  position: absolute;
-  font-size: 14px;
-  opacity: 0.7;
-  animation: sway 4s ease-in-out infinite;
-}
-
-// 木桶
-.barrel { position: absolute; font-size: 26px; filter: drop-shadow(1px 2px 1px rgba(0,0,0,0.2)); }
-
-// 石头
-.rock-decor { position: absolute; font-size: 22px; filter: drop-shadow(1px 2px 1px rgba(0,0,0,0.15)); }
-
-// 前景植物
-.fg-plant { position: absolute; font-size: 30px; filter: drop-shadow(1px 2px 1px rgba(0,0,0,0.1)); }
-
-// ===== 通用区域 =====
-.area {
-  position: absolute;
-  border-radius: 12px;
-}
-
-.area-bg {
-  position: absolute;
-  inset: -4px;
-  border-radius: 14px;
-  border: 2px solid rgba(139, 105, 20, 0.2);
-}
-
-.area-label {
-  position: absolute;
-  bottom: -20px;
-  left: 50%;
+  bottom: -22px; left: 50%;
   transform: translateX(-50%);
-  font-size: 9px;
-  font-weight: 700;
-  color: rgba(42, 31, 20, 0.6);
+  font-size: 10px; font-weight: 700;
+  color: rgba(42, 31, 20, 0.45);
   white-space: nowrap;
-  text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+  text-shadow: 0 1px 1px rgba(255,255,255,0.5);
 }
 
-// ===== 农田（左下）=====
-.farm-area {
-  width: 220px;
-  height: 220px;
+// ── Workshop ──
+.workshop-bg { background: linear-gradient(135deg, rgba(180,160,120,0.3), rgba(120,100,60,0.2)); }
+.ws-building { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 64px; filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.2)); }
+.ws-bench { position: absolute; top: 90px; left: 50%; transform: translateX(-50%); font-size: 72px; }
+.ws-barrel { position: absolute; bottom: 20px; left: 20px; font-size: 28px; }
+.ws-lantern { position: absolute; top: 10px; right: 30px; font-size: 24px; animation: sway 3s ease-in-out infinite; }
+
+// ── House ──
+.house-bg { background: linear-gradient(135deg, rgba(200,180,140,0.25), rgba(140,110,70,0.18)); }
+.house-body {
+  position: absolute;
+  top: 60px; left: 50%;
+  transform: translateX(-50%);
+}
+.house-roof { display: block; font-size: 72px; line-height: 0.7; margin-left: -16px; filter: drop-shadow(2px 3px 2px rgba(0,0,0,0.2)); }
+.house-wall { display: block; font-size: 56px; line-height: 0.8; margin-top: -4px; }
+.house-door { position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); font-size: 18px; }
+.house-window { position: absolute; top: 4px; left: 10px; font-size: 14px; }
+.house-window.w2 { left: auto; right: 10px; }
+.house-chimney { position: absolute; top: -28px; right: 16px; font-size: 28px; }
+.house-smoke {
+  position: absolute; top: -32px; right: 32px;
+  width: 16px; height: 24px;
+  background: rgba(180,180,180,0.4);
+  border-radius: 50%;
+  animation: smokeRise 3s ease-out infinite;
+}
+.house-smoke.s2 { animation-delay: 1.5s; top: -40px; }
+@keyframes smokeRise {
+  0% { opacity: 0.6; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-28px) scale(1.8); }
+}
+.h-mailbox { position: absolute; top: 210px; left: 60px; font-size: 24px; }
+.h-tree { position: absolute; font-size: 44px; filter: drop-shadow(2px 3px 2px rgba(0,0,0,0.15)); animation: sway 6s ease-in-out infinite; }
+.h-tree.t1 { top: 20px; left: 10px; }
+.h-tree.t2 { top: 30px; right: -5px; font-size: 36px; }
+.h-tree.t3 { bottom: 40px; right: 20px; font-size: 40px; }
+.h-barrel { position: absolute; font-size: 24px; }
+.h-barrel.b1 { top: 200px; right: 40px; }
+.h-barrel.b2 { bottom: 30px; left: 80px; }
+.h-flower { position: absolute; font-size: 18px; animation: sway 4s ease-in-out infinite; }
+.h-flower.f2 { top: 230px; left: 120px; }
+.h-flower:not(.f2) { bottom: 20px; right: 80px; }
+.h-fence-seg { position: absolute; font-size: 16px; top: 260px; }
+.h-fence-seg:nth-child(1) { left: 80px; }
+.h-fence-seg:nth-child(2) { left: 100px; }
+.h-fence-seg:nth-child(3) { left: 120px; }
+.h-fence-seg:nth-child(4) { left: 140px; }
+.h-fence-seg:nth-child(5) { left: 160px; }
+
+// ── Ranch ──
+.ranch-bg { background: linear-gradient(135deg, rgba(130,200,70,0.25), rgba(80,140,40,0.18)); }
+.ranch-fence-top, .ranch-fence-bottom { position: absolute; left: 16px; right: 16px; height: 5px; background: linear-gradient(90deg, #a07840, #c49a2c, #a07840); border-radius: 3px; z-index: 3; }
+.ranch-fence-top { top: 10px; }
+.ranch-fence-bottom { bottom: 10px; }
+.ranch-fence-left, .ranch-fence-right { position: absolute; top: 16px; bottom: 16px; width: 5px; background: linear-gradient(180deg, #a07840, #c49a2c, #a07840); border-radius: 3px; z-index: 3; }
+.ranch-fence-left { left: 10px; }
+.ranch-fence-right { right: 10px; }
+.ranch-grid {
+  position: absolute;
+  top: 50px; left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: repeat(3, 78px);
+  grid-template-rows: repeat(3, 78px);
+  gap: 4px;
+  z-index: 2;
+}
+.ranch-cell {
   position: relative;
+  cursor: pointer;
+  background: linear-gradient(135deg, #a8d870, #7ab840);
+  border-radius: 8px;
+  border: 2px solid rgba(139,105,20,0.3);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  &.rc-empty { border-style: dashed; }
+  &.rc-hungry { background: linear-gradient(135deg, #d8b860, #a88038); }
+  &.rc-ready { background: linear-gradient(135deg, #b8e878, #88c848); }
+  &:active { transform: scale(0.92); }
 }
+.rc-empty { font-size: 14px; opacity: 0.3; }
+.rc-animal { font-size: 22px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2)); &.hungry { animation: bounce 0.8s ease-in-out infinite; } &.ready { animation: bounce 1.2s ease-in-out infinite; font-size: 26px; } }
+.rc-tag { position: absolute; top: -10px; right: -6px; font-size: 10px; z-index: 5; }
+.tag-hungry { animation: bounce 0.8s ease-in-out infinite; }
+.tag-ready { animation: sparkle 1.5s ease-in-out infinite; }
+.rn-hay { position: absolute; font-size: 22px; }
+.rn-hay:not(.h2) { bottom: 40px; left: 20px; }
+.rn-hay.h2 { bottom: 40px; right: 20px; }
+.rn-trough { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); font-size: 24px; }
+.rn-grass { position: absolute; font-size: 18px; }
+.rn-grass:not(.g2) { top: 30px; left: 20px; }
+.rn-grass.g2 { top: 30px; right: 20px; }
+.ranch-lbl { bottom: -26px; }
 
-.farm-grass {
-  background: linear-gradient(135deg, rgba(110, 185, 60, 0.3), rgba(80, 150, 40, 0.2));
+// ── Garden ──
+.garden-bg { background: linear-gradient(135deg, rgba(220,180,150,0.25), rgba(180,120,80,0.18)); }
+.garden-shelf { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); }
+.gs-board { display: block; font-size: 100px; line-height: 0.7; color: #a07840; text-shadow: 0 2px 3px rgba(0,0,0,0.2); }
+.gs-pots { display: flex; gap: 6px; position: absolute; top: 6px; left: 50%; transform: translateX(-50%); }
+.gs-pot {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, #e8a060, #c47830);
+  border-radius: 3px 3px 8px 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: all 0.15s;
+  &.gp-bloom { background: linear-gradient(135deg, #f0c040, #d8a020); }
+  &.gp-growing { background: linear-gradient(135deg, #d89050, #b86828); }
+  &:active { transform: scale(0.88); }
 }
+.gp-empty { font-size: 10px; opacity: 0.3; }
+.gp-bloom { font-size: 20px; animation: bounce 1.2s ease-in-out infinite; }
+.gp-growing { font-size: 14px; }
+.gd-flower { position: absolute; font-size: 16px; animation: sway 4s ease-in-out infinite; }
+.gd-flower:not(.f2) { bottom: 8px; left: 10px; }
+.gd-flower.f2 { bottom: 8px; right: 10px; }
+.gd-butterfly { position: absolute; top: 4px; right: 10px; font-size: 16px; animation: butterfly 6s ease-in-out infinite; }
+@keyframes butterfly { 0%,100% { transform: translate(0,0); } 25% { transform: translate(24px,-8px); } 50% { transform: translate(40px,0); } 75% { transform: translate(16px,-12px); } }
+
+// ── Farm (视觉核心) ──
+.farm-bg {
+  background: radial-gradient(ellipse at center, rgba(120,190,60,0.4) 0%, rgba(80,150,40,0.2) 100%);
+  border-radius: 18px;
+}
+.farm-fence-rail {
+  position: absolute; z-index: 3;
+  background: linear-gradient(90deg, #8b6914, #c49a2c, #8b6914);
+  border-radius: 3px;
+  &.top { top: 6px; left: 20px; right: 20px; height: 4px; }
+  &.bottom { bottom: 6px; left: 20px; right: 20px; height: 4px; }
+  &.left { top: 20px; left: 6px; bottom: 20px; width: 4px; background: linear-gradient(180deg, #8b6914, #c49a2c, #8b6914); }
+  &.right { top: 20px; right: 6px; bottom: 20px; width: 4px; background: linear-gradient(180deg, #8b6914, #c49a2c, #8b6914); }
+}
+.farm-fence-post { position: absolute; font-size: 12px; z-index: 4; }
+.farm-fence-post.p1 { top: 4px; left: 16px; }
+.farm-fence-post.p2 { top: 4px; right: 16px; }
+.farm-fence-post.p3 { bottom: 4px; left: 16px; }
+.farm-fence-post.p4 { bottom: 4px; right: 16px; }
 
 .farm-grid {
+  position: absolute;
+  top: 36px; left: 50%;
+  transform: translateX(-50%);
   display: grid;
-  grid-template-columns: repeat(4, 48px);
-  grid-template-rows: repeat(4, 48px);
-  gap: 4px;
-  padding: 12px;
-  position: relative;
+  grid-template-columns: repeat(4, 92px);
+  grid-template-rows: repeat(4, 92px);
+  gap: 6px;
   z-index: 2;
 }
 
-.plot-tile {
+// ── Farm Tile ──
+.farm-tile {
   position: relative;
   cursor: pointer;
-  transition: all $transition-fast;
+  transition: transform 0.12s;
 
-  &:active { transform: scale(0.92); }
-
-  &.plot-mature .plot-top { background: linear-gradient(135deg, #c4a882, #b89870); }
-  &.plot-withered .plot-top { filter: saturate(0.3) brightness(0.8); }
-  &.thirsty .plot-top { background: linear-gradient(135deg, #c49060, #a07040); }
+  &:active { transform: scale(0.93); }
+  &.locked { cursor: not-allowed; }
 }
 
-.plot-dirt { position: absolute; inset: 0; }
-
-.plot-top {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, $world-dirt-light, $world-dirt, $world-dirt-wet);
-  border-radius: 4px;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.15);
-  transition: background $transition-normal;
+.ft-dirt {
+  position: absolute; inset: 0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.ft-dirt-top {
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, #c4a070, #9b7653, #7a5c3a);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.15);
+  transition: background 0.3s;
+  .thirsty & { background: linear-gradient(135deg, #c49060, #a07040, #7a4c28); }
+  .mature & { background: linear-gradient(135deg, #b89860, #8b6a40, #6a4c28); }
+  .withered & { background: linear-gradient(135deg, #908070, #706050, #504030); filter: saturate(0.4); }
+  .empty & { background: linear-gradient(135deg, #c8a878, #a08058, #7a5c38); }
+}
+.ft-ridges {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(0,0,0,0.04) 8px, rgba(0,0,0,0.04) 9px);
+  border-radius: 6px;
 }
 
-.plot-crop {
+.ft-crop {
   position: absolute;
-  top: -8px;
-  left: 50%;
+  top: -12px; left: 50%;
   transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 3;
+  z-index: 2;
+  display: flex; align-items: center; justify-content: center;
 }
+.ftc-empty { font-size: 14px; opacity: 0.25; }
+.ftc-mature {
+  font-size: 28px;
+  animation: cropBounce 1.2s ease-in-out infinite;
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.25));
+}
+.ftc-wither { font-size: 22px; opacity: 0.5; }
+.ftc-growing {
+  font-size: 20px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+  animation: cropSway 3s ease-in-out infinite;
+}
+@keyframes cropBounce { 0%,100% { transform: translateY(0) scale(1); } 40% { transform: translateY(-4px) scale(1.08); } }
+@keyframes cropSway { 0%,100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
 
-.plot-empty { font-size: 12px; opacity: 0.3; }
-.crop-mature { font-size: 24px; animation: bounce 1.2s ease-in-out infinite; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2)); }
-.crop-growing { font-size: 18px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2)); animation: grow 0.4s ease backwards; }
-.crop-wither { font-size: 18px; opacity: 0.6; }
-
-.water-need {
+.ft-tag {
   position: absolute;
   top: -14px;
   right: -4px;
   font-size: 10px;
-  animation: bounce 0.8s ease-in-out infinite;
-  z-index: 4;
+  z-index: 5;
+  &.water { animation: bounce 0.8s ease-in-out infinite; }
+  &.harvest { animation: sparkle 1.5s ease-in-out infinite; }
 }
 
-.harvest-star {
-  position: absolute;
-  top: -10px;
-  right: -6px;
-  font-size: 9px;
-  animation: sparkle 1.5s ease-in-out infinite;
-  z-index: 4;
-}
-
-// 栅栏
-.farm-fence {
-  position: absolute;
-  background: rgba($world-wood, 0.6);
-  z-index: 1;
-  &.fence-top { top: 2px; left: 10px; right: 10px; height: 3px; border-radius: 2px; }
-  &.fence-left { top: 10px; left: 2px; bottom: 10px; width: 3px; border-radius: 2px; }
-  &.fence-right { top: 10px; right: 2px; bottom: 10px; width: 3px; border-radius: 2px; }
-  &.fence-bottom { bottom: 2px; left: 10px; right: 10px; height: 3px; border-radius: 2px; }
-}
-
-// ===== 花园（左中）=====
-.garden-area {
-  width: 200px;
-  height: 120px;
-  position: relative;
-}
-
-.garden-grass {
-  background: linear-gradient(135deg, rgba(200, 150, 100, 0.2), rgba(160, 100, 60, 0.15));
-}
-
-.garden-shelf {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  z-index: 2;
-}
-
-.shelf-board {
-  font-size: 140px;
-  line-height: 0.6;
-  color: #a07840;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  position: relative;
-  &::before {
-    content: '';
-    position: absolute;
-    top: 4px; left: 8px; right: 8px; height: 3px;
-    background: rgba(255,255,255,0.12);
-    border-radius: 2px;
-  }
-}
-
-.shelf-pots {
-  display: flex;
-  gap: 6px;
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.shelf-pot {
-  width: 30px;
-  height: 30px;
-  background: linear-gradient(135deg, #e8a060, #c47830);
-  border-radius: 4px 4px 8px 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all $transition-fast;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  position: relative;
-
-  &.pot-bloom {
-    background: linear-gradient(135deg, #f0c040, #e8a820);
-    .pot-bloom { animation: bounce 1.2s ease-in-out infinite; }
-  }
-
-  &:active { transform: scale(0.9); }
-}
-
-.pot-empty { font-size: 10px; opacity: 0.35; }
-.pot-bloom { font-size: 18px; }
-.pot-growing { font-size: 14px; }
-
-// ===== 温室 ======
-.greenhouse-area {
-  width: 120px;
-  height: 100px;
-  position: relative;
-}
-
-.greenhouse-bg {
-  background: linear-gradient(135deg, rgba(200, 230, 200, 0.2), rgba(100, 180, 100, 0.1));
-}
-
-.greenhouse-glass {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 56px;
-  filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.2));
-  z-index: 2;
-}
-
-// ===== 牧场（右侧）=====
-.ranch-area {
-  width: 200px;
-  height: 200px;
-  position: relative;
-}
-
-.ranch-grass {
-  background: linear-gradient(135deg, rgba(100, 170, 60, 0.25), rgba(70, 130, 40, 0.15));
-}
-
-.ranch-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 56px);
-  grid-template-rows: repeat(3, 56px);
-  gap: 4px;
-  padding: 12px;
-  position: relative;
-  z-index: 2;
-}
-
-.ranch-slot {
-  position: relative;
-  cursor: pointer;
-  transition: all $transition-fast;
-  &:active { transform: scale(0.92); }
-}
-
-.ranch-fence {
+.ft-lock {
   position: absolute;
   inset: 0;
-  border: 2px solid rgba($world-wood, 0.5);
-  border-radius: 4px;
-  background: linear-gradient(135deg, #90c860, #70a840);
-
-  .slot-empty & { background: linear-gradient(135deg, #a0d870, #80b848); }
-  .slot-hungry & { background: linear-gradient(135deg, #c8a850, #a08838); }
-  .slot-ready & { background: linear-gradient(135deg, #90c860, #78b848); }
-}
-
-.ranch-animal {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-}
-
-.slot-empty { font-size: 14px; opacity: 0.3; }
-
-.animal-emoji {
-  font-size: 24px;
-  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2));
-  &.animal-hungry { animation: bounce 0.8s ease-in-out infinite; }
-  &.animal-ready { animation: bounce 1.2s ease-in-out infinite; font-size: 28px; }
-}
-
-.status-tag {
-  position: absolute;
-  top: -8px;
-  right: -4px;
-  font-size: 10px;
-  z-index: 4;
-  &.hungry { animation: bounce 0.8s ease-in-out infinite; }
-  &.ready { animation: sparkle 1.5s ease-in-out infinite; }
-}
-
-// 围栏角
-.ranch-corner {
-  position: absolute;
-  font-size: 16px;
-  z-index: 1;
-  &.top-left { top: 0; left: 0; }
-  &.top-right { top: 0; right: 0; }
-  &.bottom-left { bottom: 0; left: 0; }
-  &.bottom-right { bottom: 0; right: 0; }
-}
-
-// ===== 鱼塘（右下）=====
-.pond-area {
-  width: 140px;
-  height: 80px;
-  position: relative;
-}
-
-.pond-water {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(91, 184, 245, 0.4), rgba(58, 143, 212, 0.3));
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  animation: floatUp 3s ease-in-out infinite;
-}
-
-.pond-ripple {
-  position: absolute;
-  inset: 4px;
-  border: 2px solid rgba(91, 184, 245, 0.3);
-  border-radius: 50%;
-  animation: rippleRing 2s ease-in-out infinite;
-}
-
-@keyframes rippleRing {
-  0%, 100% { transform: scale(1); opacity: 0.5; }
-  50% { transform: scale(1.1); opacity: 0.1; }
-}
-
-.pond-reeds {
-  position: absolute;
-  bottom: -2px;
-  right: 8px;
+  background: rgba(60, 50, 40, 0.5);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
   font-size: 18px;
-  opacity: 0.7;
+  backdrop-filter: blur(1.5px);
+  z-index: 4;
 }
 
-// ===== 地图提示 =====
-.map-hint {
+.fm-decor { position: absolute; }
+.fm-decor.scarecrow { top: 10px; left: 14px; font-size: 18px; }
+.fm-decor.bucket { bottom: 40px; right: 10px; font-size: 22px; }
+.fm-decor.basket { bottom: 14px; right: 10px; font-size: 18px; }
+.farm-lbl { bottom: -40px; }
+
+// ── Greenhouse ──
+.gh-bg { background: linear-gradient(135deg, rgba(180,210,190,0.25), rgba(120,160,130,0.15)); }
+.gh-building { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-size: 64px; filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.2)); }
+.gh-flower { position: absolute; font-size: 16px; animation: sway 4s ease-in-out infinite; }
+.gh-flower:not(.f2) { bottom: 8px; left: 10px; }
+.gh-flower.f2 { bottom: 8px; right: 10px; }
+
+// ── Pond ──
+.pond-water-bg {
   position: absolute;
-  bottom: 8px;
-  right: 8px;
-  font-size: 9px;
-  color: rgba(42, 31, 20, 0.35);
-  pointer-events: none;
-  z-index: 100;
+  inset: 8px 12px;
+  background: linear-gradient(135deg, #6ab0e0, #3a8fc8);
+  border-radius: 50%;
+  box-shadow: inset 0 2px 8px rgba(255,255,255,0.2), 0 3px 8px rgba(0,0,0,0.15);
 }
+.pw-fish { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 28px; animation: fishSwim 4s ease-in-out infinite; }
+.pw-ripple {
+  position: absolute; inset: 6px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  animation: rippleRing 3s ease-in-out infinite;
+}
+@keyframes fishSwim { 0%,100% { transform: translate(-50%, -50%) rotate(0deg); } 25% { transform: translate(-40%, -60%) rotate(-5deg); } 50% { transform: translate(-60%, -40%) rotate(0deg); } 75% { transform: translate(-40%, -50%) rotate(5deg); } }
+@keyframes rippleRing { 0%,100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.15); opacity: 0.1; } }
+.pd-reed { position: absolute; font-size: 18px; opacity: 0.7; animation: sway 5s ease-in-out infinite; }
+.pd-reed:not(.r2) { bottom: -4px; right: 14px; }
+.pd-reed.r2 { bottom: 0; right: 28px; font-size: 16px; }
+.pd-rock { position: absolute; top: -8px; right: 4px; font-size: 20px; }
+
+// ── Decor (scattered) ──
+.decor { position: absolute; pointer-events: none; }
+.tree, .bush { filter: drop-shadow(2px 3px 2px rgba(0,0,0,0.18)); animation: sway 6s ease-in-out infinite; }
+.grass { animation: sway 4s ease-in-out infinite; }
+.flower { animation: sway 4.5s ease-in-out infinite; opacity: 0.8; }
+.rock { filter: drop-shadow(1px 2px 1px rgba(0,0,0,0.15)); }
+.hay { filter: drop-shadow(1px 2px 1px rgba(0,0,0,0.1)); }
+.stump { filter: drop-shadow(1px 2px 1px rgba(0,0,0,0.12)); }
+
+@keyframes sway { 0%,100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+@keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes sparkle { 0%,80%,100% { opacity: 1; transform: scale(1); } 40% { opacity: 0.5; transform: scale(1.4); } }
 </style>
