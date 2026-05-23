@@ -175,7 +175,7 @@ const toast = inject<(msg: string, type?: string) => void>('showToast', () => {}
 const viewportRef = ref<HTMLElement>()
 const pan = ref({ x: 0, y: 0 })
 const scale = ref(1)
-let dragging = false, moved = false
+let dragging = false, moved = false, animFrame = 0
 let dragOrigin = { x: 0, y: 0 }, panOrigin = { x: 0, y: 0 }
 
 const canvasStyle = computed(() => ({
