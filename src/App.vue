@@ -3,17 +3,17 @@
     <GameHeader />
 
     <main class="game-main">
-      <FarmView v-if="currentTab === 'farm'" />
-      <RanchView v-else-if="currentTab === 'ranch'" />
-      <GardenView v-else-if="currentTab === 'garden'" />
-      <WorkshopView v-else-if="currentTab === 'workshop'" />
+      <WorldMap ref="worldMapRef" />
     </main>
 
-    <!-- 商店/仓库：弹出面板 -->
+    <ToolBelt ref="toolBeltRef" />
+
+    <!-- 导航栏：点击跳转到对应区域 -->
+    <GameNav :current-tab="navTab" @change="handleNavChange" />
+
+    <!-- 弹出面板 -->
     <ShopView :visible="showShop" @close="showShop = false" />
     <InventoryView :visible="showInventory" @close="showInventory = false" />
-
-    <GameNav :current-tab="currentTab" @change="handleTabChange" />
 
     <GameToast :visible="toastVisible" :message="toastMessage" :type="toastType" />
 
@@ -25,14 +25,14 @@
       @close="closeTutorial"
     >
       <div class="tutorial-content">
-        <p v-if="tutorialStep === 1">🌱 欢迎继承这座小农场！让我教你基本的种植方法。</p>
-        <p v-else-if="tutorialStep === 2">🌾 点击<strong>空地</strong>可以选择作物种子进行种植。种下后记得<strong>浇水</strong>哦！</p>
-        <p v-else-if="tutorialStep === 3">💧 水是珍贵资源，用完会自动恢复。水不够时作物只是暂停生长，不会死亡。</p>
-        <p v-else-if="tutorialStep === 4">🐄 等级3可以养动物，等级5可以种花。收菜卖钱升级扩建吧！</p>
-        <p v-else-if="tutorialStep === 5">💰 作物可以加工成更值钱的商品。快去尝试吧！</p>
+        <p v-if="tutorialStep === 1">🌱 欢迎来到你的小农场！拖动屏幕可以探索整个世界。</p>
+        <p v-else-if="tutorialStep === 2">🌾 点击<strong>空地</strong>可以种植作物，种下后记得<strong>浇水</strong>哦！</p>
+        <p v-else-if="tutorialStep === 3">💧 水是珍贵资源，用完会自动恢复。水不够时作物暂停生长，不会死亡。</p>
+        <p v-else-if="tutorialStep === 4">🐄 下方工具栏可以切换工具，中间大按钮能一键操作！</p>
+        <p v-else-if="tutorialStep === 5">🗺️ 探索世界吧！更多区域会随等级解锁！</p>
         <div class="tutorial-actions">
           <button v-if="tutorialStep < 5" class="tutorial-next-btn" @click="nextTutorial">下一步</button>
-          <button v-else class="tutorial-next-btn" @click="closeTutorial">开始种田！</button>
+          <button v-else class="tutorial-next-btn" @click="closeTutorial">开始冒险！</button>
         </div>
       </div>
     </GameModal>
@@ -44,19 +44,19 @@ import { ref, onMounted, onUnmounted, provide } from 'vue'
 import { useGameStore } from '@/stores/game'
 import GameHeader from '@/components/common/GameHeader.vue'
 import GameNav from '@/components/common/GameNav.vue'
-import type { TabId } from '@/components/common/GameNav.vue'
 import GameToast from '@/components/common/GameToast.vue'
 import GameModal from '@/components/common/GameModal.vue'
-import FarmView from '@/components/farm/FarmView.vue'
-import RanchView from '@/components/ranch/RanchView.vue'
-import GardenView from '@/components/garden/GardenView.vue'
-import WorkshopView from '@/components/workshop/WorkshopView.vue'
+import WorldMap from '@/components/world/WorldMap.vue'
+import ToolBelt from '@/components/world/ToolBelt.vue'
 import ShopView from '@/components/shop/ShopView.vue'
 import InventoryView from '@/components/inventory/InventoryView.vue'
 
 const game = useGameStore()
 
-const currentTab = ref<TabId>('farm')
+const worldMapRef = ref<InstanceType<typeof WorldMap>>()
+const toolBeltRef = ref<InstanceType<typeof ToolBelt>>()
+
+const navTab = ref('farm')
 const showTutorial = ref(false)
 const tutorialStep = ref(1)
 
@@ -75,14 +75,17 @@ provide('showToast', (msg: string, type: 'success' | 'error' | 'info' = 'success
 const showShop = ref(false)
 const showInventory = ref(false)
 
-function handleTabChange(tab: TabId) {
+function handleNavChange(tab: string) {
   if (tab === 'shop') {
     showShop.value = true
-  } else if (tab === 'inventory') {
-    showInventory.value = true
-  } else {
-    currentTab.value = tab
+    return
   }
+  if (tab === 'inventory') {
+    showInventory.value = true
+    return
+  }
+  navTab.value = tab
+  // 可扩展：点击导航自动将世界地图平移到对应区域
 }
 
 function nextTutorial() {
